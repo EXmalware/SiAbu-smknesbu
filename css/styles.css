@@ -1,0 +1,851 @@
+:root {
+  /* Tema warna baru: Improvisasi dengan biru gelap, hijau mint, oranye lembut untuk nuansa modern dan segar */
+  --color-primary: #0d6efd; /* Biru gelap */
+  --color-secondary: #fd7e14; /* Oranye lembut */
+  --color-accent: #20c997; /* Hijau mint */
+  --color-neutral-light: #f4f4f5; /* Abu-abu sangat terang */
+  --color-neutral-dark: #1f2937; /* Abu-abu gelap */
+  --color-hadir: #198754;
+  --color-absen: #dc3545;
+  --color-terlambat: #ffc107;
+  --color-izin: #0dcaf0;
+  --font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --border-radius: 16px; /* Lebih rounded untuk tampilan modern */
+  --box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  --transition: all 0.3s ease-in-out;
+}
+
+/* Mode Terang (Default) */
+body.light-mode {
+  background-color: var(--color-neutral-light);
+  color: #111827;
+}
+
+body.light-mode .main-container {
+  background: #ffffff;
+}
+
+body.light-mode #loginForm,
+body.light-mode #userPanel,
+body.light-mode #forgotPasswordPanel {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+body.light-mode input,
+body.light-mode select {
+  background-color: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+}
+
+body.light-mode button {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+body.light-mode .forgot-password-link {
+  color: var(--color-primary);
+}
+
+body.light-mode .calendar-day {
+  background-color: #f3f4f6;
+}
+
+body.light-mode .calendar-day.status-H {
+  background-color: #d1e7dd;
+  border-color: var(--color-hadir);
+}
+
+body.light-mode .calendar-day.status-A {
+  background-color: #f8d7da;
+  border-color: var(--color-absen);
+}
+
+body.light-mode .calendar-day.status-T {
+  background-color: #fff3cd;
+  border-color: var(--color-terlambat);
+}
+
+body.light-mode .calendar-day.status-I {
+  background-color: #cff4fc;
+  border-color: var(--color-izin);
+}
+
+body.light-mode .calendar-day.status-P {
+  background-color: #dbeafe;
+  border-color: var(--color-primary);
+}
+
+body.light-mode .calendar-day.weekend-day {
+  background-color: var(--color-absen);
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+body.light-mode .footer {
+  background-color: transparent;
+  color: #111827;
+}
+
+/* Mode Gelap */
+body.dark-mode {
+  background-color: #111827;
+  color: #f9fafb;
+}
+
+body.dark-mode .main-container {
+  background: var(--color-neutral-dark);
+}
+
+body.dark-mode #loginForm,
+body.dark-mode #userPanel,
+body.dark-mode #forgotPasswordPanel {
+  background: var(--color-neutral-dark);
+  border: 1px solid #374151;
+}
+
+body.dark-mode input,
+body.dark-mode select {
+  background-color: #4b5563;
+  color: #f9fafb;
+  border: 1px solid #6b7280;
+}
+
+body.dark-mode button {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+body.dark-mode .forgot-password-link {
+  color: var(--color-primary);
+}
+
+body.dark-mode .calendar-day {
+  background-color: #374151;
+  border-color: #4b5563;
+}
+
+body.dark-mode .calendar-day.status-H {
+  background-color: #1a6643;
+  border-color: var(--color-hadir);
+}
+
+body.dark-mode .calendar-day.status-A {
+  background-color: #7c2d2f;
+  border-color: var(--color-absen);
+}
+
+body.dark-mode .calendar-day.status-T {
+  background-color: #735f1c;
+  border-color: var(--color-terlambat);
+}
+
+body.dark-mode .calendar-day.status-I {
+  background-color: #0f5e6e;
+  border-color: var(--color-izin);
+}
+
+body.dark-mode .calendar-day.status-P {
+  background-color: #1e3a8a;
+  border-color: var(--color-primary);
+}
+
+body.dark-mode .calendar-day.weekend-day {
+  background-color: #7c2d2f;
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+body.dark-mode .footer {
+  background-color: transparent;
+  color: #f9fafb;
+}
+
+/* CSS untuk Kontainer Utama, Judul, dan Footer */
+.main-container {
+  padding: 1.5rem;
+  max-width: 700px;
+  margin: 2rem auto;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+}
+
+.school-logo {
+  height: 50px;
+  margin-right: 1rem;
+}
+
+.app-header h1 {
+  font-size: 1.6rem;
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.app-header p {
+  font-size: 0.9rem;
+  margin: 0.2rem 0 0 0;
+}
+
+.app-title-group {
+  text-align: left;
+}
+
+.footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  padding: 0.8rem;
+  border-radius: var(--border-radius);
+  font-size: 0.85rem;
+}
+
+/* Jam digital realtime di header */
+#digital-clock {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  margin-left: auto;
+  margin-right: 1rem;
+}
+
+/* CSS untuk Toggle */
+.theme-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: var(--transition);
+  border-radius: 24px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: var(--transition);
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--color-primary);
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px var(--color-primary);
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+#theme-label {
+  margin: 0;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+/* CSS untuk Kalender */
+.calendar-container {
+  max-width: 100%;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+body.dark-mode .calendar-container {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.calendar-header {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  gap: 0.4rem;
+}
+
+.calendar-weekdays span {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.calendar-day {
+  padding: 0.7rem 0.4rem;
+  border: 1px solid #d1d5db;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+  min-height: 55px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+}
+
+body.dark-mode .calendar-day {
+  border: 1px solid #4b5563;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.calendar-day:hover {
+  transform: scale(1.04);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+body.dark-mode .calendar-day:hover {
+  box-shadow: 0 6px 12px rgba(255, 255, 255, 0.15);
+}
+
+.empty-day {
+  background-color: transparent !important;
+  border: none !important;
+  cursor: default;
+}
+
+.day-number {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.day-status {
+  font-size: 0.9rem;
+}
+
+/* Legend */
+.legend-container {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-radius: var(--border-radius);
+  background: #f3f4f6;
+}
+
+body.dark-mode .legend-container {
+  background: #374151;
+}
+
+.legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.8rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #111827;
+}
+
+body.dark-mode .legend-item {
+  color: #f9fafb;
+}
+
+.legend-color-box {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 0.6rem;
+  border-radius: 4px;
+}
+
+.legend-color-box.H { background-color: var(--color-hadir); }
+.legend-color-box.A { background-color: var(--color-absen); }
+.legend-color-box.I { background-color: var(--color-izin); }
+.legend-color-box.T { background-color: var(--color-terlambat); }
+.legend-color-box.P { background-color: var(--color-primary); }
+.legend-color-box.OFF { background-color: var(--color-absen); }
+
+/* CSS untuk Modal */
+.modal {
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  transition: var(--transition);
+}
+
+.modal-content {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  width: 90%;
+  max-width: 450px;
+  margin: auto; /* Tambahan untuk memastikan centered */
+  position: relative;
+  box-shadow: var(--box-shadow);
+  animation: slideIn 0.3s ease-in-out;
+}
+
+body.dark-mode .modal-content {
+  background-color: var(--color-neutral-dark);
+  color: #f9fafb;
+}
+
+.close-button {
+  color: #9ca3af;
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.close-button:hover {
+  color: #111827;
+}
+
+/* Share icon style */
+.share-icon {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: var(--color-primary);
+  transition: var(--transition);
+}
+
+.share-icon:hover {
+  color: var(--color-accent);
+}
+
+/* CSS untuk Notifikasi - Centered di tengah layar */
+#notification-bar {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3000;
+  padding: 1.2rem 2.5rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  color: #ffffff;
+  font-weight: 600;
+  opacity: 0;
+  visibility: hidden;
+  transition: var(--transition);
+  animation: popIn 0.5s ease-in-out;
+  max-width: 80%;
+  text-align: center;
+}
+
+@keyframes popIn {
+  from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+#notification-bar.success {
+  background-color: var(--color-hadir);
+}
+
+#notification-bar.error {
+  background-color: var(--color-absen);
+}
+
+/* CSS untuk Loading Overlay */
+#loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 4000;
+  flex-direction: column;
+  color: #ffffff;
+}
+
+.spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  margin-top: 1rem;
+  font-weight: 600;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.spinner-small {
+  display: inline-block;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+  vertical-align: middle;
+}
+
+/* CSS umum */
+body {
+  font-family: var(--font-family);
+  padding: 1rem;
+  transition: var(--transition);
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+#loginForm,
+#userPanel,
+#forgotPasswordPanel {
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  box-shadow: none;
+  border: none;
+  margin: 0;
+  transition: var(--transition);
+}
+
+input,
+button,
+select {
+  display: block;
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+  border-radius: var(--border-radius);
+  box-sizing: border-box;
+  transition: var(--transition);
+  font-size: 1rem;
+}
+
+button {
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+body.dark-mode button:hover {
+  box-shadow: 0 6px 12px rgba(255, 255, 255, 0.2);
+}
+
+button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.password-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.password-container input {
+  padding-right: 40px;
+  margin-bottom: 0;
+}
+
+.password-container .toggle-password {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 1.2rem;
+}
+
+.filter-container {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-container select {
+  flex: 1;
+  min-width: 120px;
+}
+
+.filter-container button {
+  flex: 0 0 50px;
+  margin-bottom: 0;
+  font-size: 1.1rem;
+  padding: 0.6rem;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.nav-buttons button {
+  flex: 1;
+  min-width: 140px;
+}
+
+.forgot-password-link {
+  display: block;
+  text-align: center;
+  margin-top: 0.8rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: var(--transition);
+}
+
+.forgot-password-link:hover {
+  text-decoration: underline;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 1.5rem;
+  gap: 1rem;
+}
+
+.modal-buttons button {
+  width: 48%;
+}
+
+/* Summary dashboard */
+.summary-dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-item {
+  background: #ffffff;
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  text-align: center;
+  box-shadow: var(--box-shadow);
+  transition: var(--transition);
+}
+
+body.dark-mode .summary-item {
+  background: #374151;
+}
+
+.summary-item:hover {
+  transform: translateY(-5px);
+}
+
+.summary-item i {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.summary-item.hadir i { color: var(--color-hadir); }
+.summary-item.absen i { color: var(--color-absen); }
+.summary-item.terlambat i { color: var(--color-terlambat); }
+.summary-item.izin i { color: var(--color-izin); }
+
+/* Status text di center */
+#status {
+  text-align: center;
+  color: var(--color-secondary);
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+/* Menu ellipsis untuk mobile */
+#mobile-menu-btn {
+  display: none;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  padding: 0.8rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+.nav-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  background-color: #ffffff;
+  box-shadow: var(--box-shadow);
+  border-radius: var(--border-radius);
+  z-index: 1000;
+  width: 200px;
+}
+
+body.dark-mode .nav-dropdown {
+  background-color: var(--color-neutral-dark);
+}
+
+.nav-dropdown button {
+  width: 100%;
+  margin: 0;
+  border-radius: 0;
+  text-align: left;
+  padding: 1rem;
+}
+
+.nav-dropdown button:hover {
+  background-color: #f3f4f6;
+}
+
+body.dark-mode .nav-dropdown button:hover {
+  background-color: #4b5563;
+}
+
+/* Media Queries untuk perbaikan tampilan mobile */
+@media (max-width: 600px) {
+  .main-container {
+    padding: 1rem;
+    margin: 1rem;
+    max-width: 100%;
+  }
+
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  #digital-clock {
+    margin-left: 0;
+    margin-top: 0.5rem;
+  }
+
+  .theme-toggle-container {
+    margin-top: 0.5rem;
+  }
+
+  .calendar-weekdays,
+  .calendar-grid {
+    gap: 0.2rem;
+  }
+
+  .calendar-day {
+    padding: 0.5rem 0.2rem;
+    min-height: 45px;
+    font-size: 0.8rem;
+  }
+
+  .day-number {
+    font-size: 0.9rem;
+  }
+
+  .day-status {
+    font-size: 0.75rem;
+  }
+
+  .filter-container {
+    flex-direction: column;
+  }
+
+  .filter-container select,
+  .filter-container button {
+    width: 100%;
+  }
+
+  .nav-buttons {
+    display: none;
+  }
+
+  #mobile-menu-btn {
+    display: block;
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .nav-dropdown.show {
+    display: block;
+  }
+
+  .summary-dashboard {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
