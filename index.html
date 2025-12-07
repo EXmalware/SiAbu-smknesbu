@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sistem Absensi</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+  <!-- Include external CSS -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+  <!-- (Konten HTML sama seperti sebelumnya...) -->
+  <!-- Saya hanya akan menampilkan perubahan di bagian script -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <p class="loading-text" id="loading-text"></p>
+  </div>
+
+  <div id="notification-bar"></div>
+
+  <div class="main-container">
+    <div class="app-header">
+      <div class="logo-container">
+        <img
+          src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgZs7SGoRoibsRUkeVfMPcmjXotJL7Q0JoXJw6fU6mQt2Ez88VVuY39eJG97DX4_p-WIfwmjAZEvCsvTXu3wYNZOzQpmoPJ6D5pptrlQO8hGOEDclFmEW5Sa6Wq6G0BlE0BjySPARQWLojr3vU2i1x8SunVWuFJv1KCcVv30zaJ8MLZZP1o-6-cdDW0Sa4/s4501/smk-02.png"
+          alt="Logo Sekolah" class="school-logo">
+        <div class="app-title-group">
+          <h1>SiAbu - SMKNESBU</h1>
+          <p>Sistem Absensi Siswa SMK Negeri 1 Bumijawa</p>
+        </div>
+      </div>
+      <span id="digital-clock"></span>
+      <div class="theme-toggle-container">
+        <p id="theme-label"></p>
+        <label class="switch">
+          <input type="checkbox" id="darkModeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div id="loginForm" class="fade-in">
+      <h3>Login &#x1f512;</h3>
+      <input type="text" id="username" placeholder="NIS atau Email" required>
+      <div class="password-container">
+        <input type="password" id="password" placeholder="Password" required>
+        <span class="toggle-password" onclick="togglePasswordVisibility()">&#x1f441;</span>
+      </div>
+      <button id="loginBtn" onclick="login()"><i class="fas fa-sign-in-alt inline-block mr-2"></i>Login</button>
+      <a class="forgot-password-link" onclick="showForgotPasswordPanel()">Lupa password?</a>
+    </div>
+
+    <div id="forgotPasswordPanel" style="display:none;">
+      <h3>Reset Password</h3>
+      <p>Masukkan email Anda yang terdaftar.</p>
+      <input type="email" id="resetEmail" placeholder="Email" required>
+      <button onclick="resetPassword()"><i class="fas fa-key inline-block mr-2"></i>Reset Password</button>
+      <a class="forgot-password-link" onclick="backToLogin()">Kembali ke Login</a>
+    </div>
+
+    <div id="userPanel" style="display:none;">
+      <p id="userInfo"></p>
+
+      <!-- Mobile menu button (ellipsis) -->
+      <button id="mobile-menu-btn" onclick="toggleMobileMenu()"><i class="fas fa-ellipsis-v"></i></button>
+
+      <!-- Dropdown menu for mobile -->
+      <div class="nav-dropdown" id="nav-dropdown">
+        <button onclick="showAbsenPanel()"><i class="fas fa-calendar-check inline-block mr-2"></i>Riwayat Absen</button>
+        <button onclick="showProfilePanel()"><i class="fas fa-user-circle inline-block mr-2"></i>Profil</button>
+        <button onclick="showLogoutConfirmation()"><i class="fas fa-sign-out-alt inline-block mr-2"></i>Logout</button>
+      </div>
+
+      <!-- Nav buttons for desktop -->
+      <div class="nav-buttons">
+        <button onclick="showAbsenPanel()"><i class="fas fa-calendar-check inline-block mr-2"></i>Riwayat Absen</button>
+        <button onclick="showProfilePanel()"><i class="fas fa-user-circle inline-block mr-2"></i>Profil</button>
+        <button onclick="showLogoutConfirmation()"><i class="fas fa-sign-out-alt inline-block mr-2"></i>Logout</button>
+      </div>
+
+      <div id="absenContent" class="fade-in">
+        <div class="filter-container">
+          <select id="bulanFilter"></select>
+          <select id="tahunFilter"></select>
+          <button onclick="filterData()"><i class="fas fa-sync-alt inline-block"></i></button>
+          <button id="pdfBtn" onclick="generatePdfReport()"><i class="fas fa-file-pdf inline-block"></i></button>
+        </div>
+        <p id="status"></p>
+
+        <div class="summary-dashboard" id="summary-dashboard">
+          <div class="summary-item hadir"><i class="fas fa-check-circle"></i>
+            <p>Hadir: <span id="sum-hadir">0</span></p>
+          </div>
+          <div class="summary-item absen"><i class="fas fa-times-circle"></i>
+            <p>Absen: <span id="sum-absen">0</span></p>
+          </div>
+          <div class="summary-item terlambat"><i class="fas fa-clock"></i>
+            <p>Terlambat: <span id="sum-terlambat">0</span></p>
+          </div>
+          <div class="summary-item izin"><i class="fas fa-info-circle"></i>
+            <p>Izin: <span id="sum-izin">0</span></p>
+          </div>
+        </div>
+
+        <div class="calendar-container">
+          <div class="calendar-header">
+            <span id="month-year-display"></span>
+          </div>
+          <div class="calendar-weekdays">
+            <span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span>
+          </div>
+          <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+
+        <div class="legend-container">
+          <h4>Keterangan Status Absen:</h4>
+          <div class="legend-grid">
+            <div class="legend-item"><span class="legend-color-box H"></span> H : Hadir</div>
+            <div class="legend-item"><span class="legend-color-box A"></span> A : Alpa</div>
+            <div class="legend-item"><span class="legend-color-box I"></span> I : Izin</div>
+            <div class="legend-item"><span class="legend-color-box I"></span> S : Sakit</div>
+            <div class="legend-item"><span class="legend-color-box T"></span> T : Terlambat</div>
+            <div class="legend-item"><span class="legend-color-box T"></span> TAP : Tidak Absen Pulang</div>
+            <div class="legend-item"><span class="legend-color-box T"></span> TAM : Tidak Absen Masuk</div>
+            <div class="legend-item"><span class="legend-color-box T"></span> TAPT : Tidak Absen Pulang & Terlambat
+            </div>
+            <div class="legend-item"><span class="legend-color-box P"></span> P : Pulang</div>
+            <div class="legend-item"><span class="legend-color-box T"></span> PT : Pulang & Terlambat</div>
+            <div class="legend-item"><span class="legend-color-box H"></span> HB : Hari Besar</div>
+            <div class="legend-item"><span class="legend-color-box OFF"></span> OFF : Libur</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="profileContent" class="modal" style="display:none;">
+        <div class="modal-content">
+          <span class="close-button" onclick="closeModal('profileContent')">&times;</span>
+          <h3>Profil Siswa</h3>
+          <p><strong>Nama:</strong> <span id="profileNama"></span></p>
+          <p><strong>NIS:</strong> <span id="profileNis"></span></p>
+          <label for="profilePassword">Password Baru (kosongkan jika tidak ingin diubah)</label>
+          <div class="password-container">
+            <input type="password" id="profilePassword" placeholder="Password Baru">
+            <span class="toggle-password" onclick="toggleProfilePasswordVisibility()">&#x1f441;</span>
+          </div>
+          <label for="profileEmail">Email</label>
+          <input type="email" id="profileEmail" placeholder="Email">
+          <button onclick="updateProfile()"><i class="fas fa-save inline-block mr-2"></i>Simpan Perubahan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Kesiswaan smknesbu 2025 &copy; malware</p>
+  </div>
+
+  <div id="detail-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('detail-modal')">&times;</span>
+      <h4 id="modal-date"></h4>
+      <p id="modal-status"></p>
+      <p id="modal-time-in"></p>
+      <p id="modal-time-out"></p>
+      <i class="fas fa-share-alt share-icon" onclick="shareDetailModal()"></i>
+    </div>
+  </div>
+
+  <div id="logout-confirmation-modal" class="modal">
+    <div class="modal-content">
+      <h4>Konfirmasi Logout</h4>
+      <p>Apakah Anda yakin ingin keluar dari sesi ini?</p>
+      <div class="modal-buttons">
+        <button onclick="performLogout()">Ya, keluar</button>
+        <button onclick="closeModal('logout-confirmation-modal')">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="email-notification-modal" class="modal">
+    <div class="modal-content">
+      <h4>Notifikasi</h4>
+      <p>Silahkan tambahkan email untuk login</p>
+      <div class="modal-buttons">
+        <button onclick="closeModal('email-notification-modal')">Ingatkan Saya</button>
+        <button onclick="redirectToProfileAndClose()">Tambahkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Include external JavaScript -->
+  <script src="js/config.js"></script>
+  <script src="js/mock_data.js"></script>
+  <script src="js/script.js"></script>
+</body>
+
+</html>

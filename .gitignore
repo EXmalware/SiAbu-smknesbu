@@ -1,0 +1,22 @@
+# Ignore config file dengan API URL (untuk keamanan)
+js/config.js
+
+# Node modules (jika menggunakan build tools)
+node_modules/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
