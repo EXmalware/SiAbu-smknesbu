@@ -167,12 +167,16 @@ Deploy ke GitHub Pages dan gunakan custom domain jika perlu:
 
 ---
 
-## Next Steps
+### Update Penting (7 Des 2025): Fix CORS Production
 
-1. **Push ke GitHub** mengikuti [DEPLOYMENT.md](file:///e:/ANTIGRAFITY/Project%20Absensi%20Siswa%20SiAbu/DEPLOYMENT.md)
-2. **Enable GitHub Pages**
-3. **Test dari GitHub Pages URL**
-4. **Verify semua fitur berfungsi**
+Kami menemukan bahwa header `Content-Type: application/json` menyebabkan error CORS di production (Preflight check failed).
+Fix telah diterapkan dengan menghapus header tersebut. Request body tetap dikirim sebagai JSON string, namun browser akan menganggapnya sebagai "Simple Request" (text/plain) sehingga melewati pemeriksaan preflight.
+
+### Next Steps
+
+1. **Push Changes ke GitHub** (file `js/script.js` telah diupdate).
+2. Tunggu deployment GitHub Pages selesai.
+3. Refresh halaman live dan coba login kembali.
 
 ---
 

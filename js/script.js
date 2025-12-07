@@ -24,10 +24,7 @@ async function apiCall(action, method = 'GET', data = null) {
             : `${API_URL}?action=${action}`;
 
         const options = {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json',
-            }
+            method: method
         };
 
         if (method === 'POST' && data) {
