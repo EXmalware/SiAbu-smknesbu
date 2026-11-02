@@ -100,6 +100,7 @@ async function apiCall(action, method = 'GET', data = null) {
 
 document.addEventListener("DOMContentLoaded", function () {
     showAppSplash();
+    registerServiceWorker();
 
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
@@ -180,6 +181,14 @@ document.addEventListener("DOMContentLoaded", function () {
     setInterval(updateClock, 1000);
     updateClock();
 });
+
+function registerServiceWorker() {
+    if (!window.isSecureContext || !("serviceWorker" in navigator)) return;
+
+    navigator.serviceWorker.register("./sw.js").catch(error => {
+        console.error("Service worker registration failed:", error);
+    });
+}
 
 function updateClock() {
     const clock = document.getElementById('digital-clock');

@@ -20,6 +20,10 @@ Frontend (GitHub Pages)          Backend (Google Apps Script)      Database (Goo
 Project Absensi Siswa SiAbu/
 ├── Code.gs                 # Backend API (deploy ke Google Apps Script)
 ├── index.html              # HTML utama
+├── manifest.webmanifest    # Metadata instalasi PWA
+├── sw.js                   # Service worker untuk app shell offline
+├── apple-touch-icon.png    # Ikon layar utama iOS
+├── icons/                  # Ikon aplikasi PWA
 ├── css/
 │   └── styles.css          # Semua styling
 ├── js/
@@ -51,6 +55,10 @@ Project Absensi Siswa SiAbu/
 
 **📖 Panduan lengkap**: Lihat [DEPLOYMENT.md](DEPLOYMENT.md)
 
+### Progressive Web App (PWA)
+
+Frontend menyertakan `manifest.webmanifest`, ikon aplikasi, dan service worker. Setelah frontend dipublikasikan melalui HTTPS (misalnya GitHub Pages), browser yang kompatibel dapat menawarkan opsi instalasi. App shell yang sudah tersimpan dapat dibuka saat offline, tetapi login dan pemuatan data tetap memerlukan koneksi internet. Service worker hanya menyimpan aset frontend; respons API dan data siswa tidak disimpan di cache.
+
 ## ✨ Fitur
 
 - ✅ Login dengan NIS atau Email
@@ -67,6 +75,7 @@ Project Absensi Siswa SiAbu/
 - ✅ **Responsive design untuk mobile**
 - ✅ **Mobile menu dengan ellipsis**
 - ✅ **REST API ready untuk mobile app**
+- ✅ **PWA: dapat dipasang dan membuka app shell saat offline**
 
 ## 🎨 Kustomisasi
 

@@ -120,6 +120,10 @@ git push -u origin main
 1. Di halaman repository GitHub, klik **uploading an existing file**
 2. Drag & drop semua file/folder:
    - `index.html`
+   - `manifest.webmanifest`
+   - `sw.js`
+   - `apple-touch-icon.png`
+   - `icons/` folder
    - `css/` folder
    - `js/` folder
    - `README.md`
@@ -148,6 +152,10 @@ git push -u origin main
    - ✅ Dark mode
    - ✅ Profil
    - ✅ PDF download
+
+### Step 6: Install sebagai PWA (Opsional)
+
+Frontend juga menyertakan web app manifest, ikon, dan service worker. Pastikan file `manifest.webmanifest`, `apple-touch-icon.png`, folder `icons/`, dan `sw.js` ikut dipublikasikan. Buka situs GitHub Pages melalui HTTPS, lalu gunakan opsi **Install app** atau **Add to Home Screen** di browser yang mendukung. App shell yang tersimpan dapat dibuka offline, tetapi login dan data absensi tetap memerlukan koneksi internet.
 
 ---
 
