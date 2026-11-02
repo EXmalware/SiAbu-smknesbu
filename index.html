@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sistem Absensi</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+  <!-- Include external CSS -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+  <!-- (Konten HTML sama seperti sebelumnya...) -->
+  <!-- Saya hanya akan menampilkan perubahan di bagian script -->
+  <div id="app-splash-screen" role="status" aria-live="polite" aria-label="Memuat SiAbu">
+    <div class="app-splash-content">
+      <img
+        src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgZs7SGoRoibsRUkeVfMPcmjXotJL7Q0JoXJw6fU6mQt2Ez88VVuY39eJG97DX4_p-WIfwmjAZEvCsvTXu3wYNZOzQpmoPJ6D5pptrlQO8hGOEDclFmEW5Sa6Wq6G0BlE0BjySPARQWLojr3vU2i1x8SunVWuFJv1KCcVv30zaJ8MLZZP1o-6-cdDW0Sa4/s4501/smk-02.png"
+        alt="" class="app-splash-logo">
+      <h1>SiAbu</h1>
+      <p>SMK Negeri 1 Bumijawa</p>
+      <span class="app-splash-spinner" aria-hidden="true"></span>
+      <span class="app-splash-loading">Menyiapkan halaman...</span>
+    </div>
+  </div>
+
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <p class="loading-text" id="loading-text"></p>
+  </div>
+
+  <div id="notification-bar"></div>
+
+  <div class="main-container">
+    <div class="app-header">
+      <div class="logo-container">
+        <img
+          src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgZs7SGoRoibsRUkeVfMPcmjXotJL7Q0JoXJw6fU6mQt2Ez88VVuY39eJG97DX4_p-WIfwmjAZEvCsvTXu3wYNZOzQpmoPJ6D5pptrlQO8hGOEDclFmEW5Sa6Wq6G0BlE0BjySPARQWLojr3vU2i1x8SunVWuFJv1KCcVv30zaJ8MLZZP1o-6-cdDW0Sa4/s4501/smk-02.png"
+          alt="Logo Sekolah" class="school-logo">
+        <div class="app-title-group">
+          <h1>SiAbu - SMKNESBU</h1>
+          <p>Sistem Absensi Siswa SMK Negeri 1 Bumijawa</p>
+        </div>
+      </div>
+      <div class="header-utilities">
+        <span id="digital-clock"></span>
+        <button id="header-qr-button" class="header-qr-button" type="button" aria-label="Tampilkan QR siswa"
+          title="Tampilkan QR siswa" onclick="showStudentQrModal()" hidden>
+          <i class="fas fa-qrcode" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="theme-toggle-container">
+        <p id="theme-label"></p>
+        <label class="switch">
+          <input type="checkbox" id="darkModeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div id="loginForm" class="fade-in">
+      <div class="login-intro">
+        <span class="login-icon"><i class="fas fa-calendar-check" aria-hidden="true"></i></span>
+        <span class="login-eyebrow">Portal sekolah</span>
+        <h2>Selamat datang</h2>
+        <p>Masuk untuk melihat informasi kehadiran Anda.</p>
+      </div>
+      <div class="login-fields">
+        <label for="username">NIS atau email</label>
+        <div class="login-input-wrap">
+          <i class="fas fa-user" aria-hidden="true"></i>
+          <input type="text" id="username" placeholder="Masukkan NIS atau email" autocomplete="username" required>
+        </div>
+        <label for="password">Password</label>
+        <div class="password-container login-input-wrap">
+          <i class="fas fa-lock login-input-icon" aria-hidden="true"></i>
+          <input type="password" id="password" placeholder="Masukkan password" autocomplete="current-password" required>
+          <button type="button" class="toggle-password login-password-toggle" aria-label="Tampilkan password"
+            onclick="togglePasswordVisibility()"><i class="fas fa-eye" aria-hidden="true"></i></button>
+        </div>
+        <button id="loginBtn" class="login-submit" onclick="login()">
+          <span>Masuk</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </button>
+        <a class="forgot-password-link" onclick="showForgotPasswordPanel()">Lupa password?</a>
+        <p class="login-help"><i class="fas fa-shield-alt" aria-hidden="true"></i> Gunakan akun yang terdaftar untuk masuk.</p>
+      </div>
+    </div>
+
+    <div id="forgotPasswordPanel" style="display:none;">
+      <h3>Reset Password</h3>
+      <p>Masukkan email Anda yang terdaftar.</p>
+      <input type="email" id="resetEmail" placeholder="Email" required>
+      <button onclick="resetPassword()"><i class="fas fa-key inline-block mr-2"></i>Reset Password</button>
+      <a class="forgot-password-link" onclick="backToLogin()">Kembali ke Login</a>
+    </div>
+
+    <div id="userPanel" style="display:none;">
+      <div class="dashboard-topbar">
+        <div class="dashboard-greeting">
+          <span id="dashboard-account-label">Dashboard siswa</span>
+          <div class="dashboard-user-details">
+            <p id="userInfo"></p>
+            <span id="userClass" class="dashboard-user-class" hidden></span>
+          </div>
+        </div>
+        <button id="dashboardBackButton" type="button" class="dashboard-back-button" onclick="showDashboardHome()"
+          aria-label="Kembali ke menu utama" title="Kembali ke menu utama">
+          <i class="fas fa-arrow-left" aria-hidden="true"></i><span>Menu utama</span>
+        </button>
+      </div>
+
+      <section id="dashboardHome" class="dashboard-home" aria-labelledby="dashboard-home-title">
+        <div class="dashboard-home-heading">
+          <h2 id="dashboard-home-title" tabindex="-1">Selamat pagi</h2>
+          <p id="dashboard-home-description">Pilih menu untuk mulai menjelajahi layanan siswa.</p>
+        </div>
+        <section id="student-dashboard-statistics" class="dashboard-statistics rpg-status-panel" aria-labelledby="dashboard-statistics-title">
+          <div class="dashboard-statistics-heading">
+            <div class="rpg-status-title">
+              <span class="rpg-status-emblem" aria-hidden="true"><i class="fas fa-shield-alt"></i></span>
+              <div>
+                <span class="rpg-status-eyebrow">STATUS SISWA</span>
+                <h3 id="dashboard-statistics-title">Statistik absensi</h3>
+                <p id="dashboard-stats-period">Periode terpilih</p>
+              </div>
+            </div>
+            <div class="rpg-status-total">
+              <strong id="stats-active-days">-</strong>
+              <span>HARI AKTIF</span>
+            </div>
+            <button id="dashboard-stats-retry" type="button" onclick="filterData()" hidden>
+              <i class="fas fa-redo-alt" aria-hidden="true"></i><span>Coba lagi</span>
+            </button>
+          </div>
+          <p id="dashboard-stats-status" class="dashboard-stats-status" role="status" aria-live="polite">Statistik akan dimuat.</p>
+          <div class="rpg-stat-breakdown" aria-label="Rincian statistik kehadiran">
+            <div class="rpg-stat-breakdown-heading">
+              <h4>Rincian status</h4>
+              <span>PERIODE INI</span>
+            </div>
+            <div class="dashboard-stat-bars">
+              <div class="dashboard-stat-row hadir" data-stat="hadir">
+                <div class="dashboard-stat-row-heading"><span><i class="fas fa-check-circle" aria-hidden="true"></i> Hadir</span><strong id="stats-hadir">-</strong></div>
+                <div class="dashboard-stat-track" role="progressbar" aria-label="Hadir" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="stats-bar-hadir"></span></div>
+              </div>
+              <div class="dashboard-stat-row sakit" data-stat="sakit">
+                <div class="dashboard-stat-row-heading"><span><i class="fas fa-heartbeat" aria-hidden="true"></i> Sakit</span><strong id="stats-sakit">-</strong></div>
+                <div class="dashboard-stat-track" role="progressbar" aria-label="Sakit" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="stats-bar-sakit"></span></div>
+              </div>
+              <div class="dashboard-stat-row izin" data-stat="izin">
+                <div class="dashboard-stat-row-heading"><span><i class="fas fa-info-circle" aria-hidden="true"></i> Izin</span><strong id="stats-izin">-</strong></div>
+                <div class="dashboard-stat-track" role="progressbar" aria-label="Izin" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="stats-bar-izin"></span></div>
+              </div>
+              <div class="dashboard-stat-row absen" data-stat="alpha">
+                <div class="dashboard-stat-row-heading"><span><i class="fas fa-times-circle" aria-hidden="true"></i> Alpa</span><strong id="stats-alpha">-</strong></div>
+                <div class="dashboard-stat-track" role="progressbar" aria-label="Alpa" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="stats-bar-alpha"></span></div>
+              </div>
+              <div class="dashboard-stat-row terlambat" data-stat="terlambat">
+                <div class="dashboard-stat-row-heading"><span><i class="fas fa-clock" aria-hidden="true"></i> Terlambat</span><strong id="stats-terlambat">-</strong></div>
+                <div class="dashboard-stat-track" role="progressbar" aria-label="Terlambat" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="stats-bar-terlambat"></span></div>
+              </div>
+              <div class="dashboard-stat-row lainnya" data-stat="lainnya">
+                <div class="dashboard-stat-row-heading"><span><i class="fas fa-ellipsis-h" aria-hidden="true"></i> Lainnya</span><strong id="stats-lainnya">-</strong></div>
+                <div class="dashboard-stat-track" role="progressbar" aria-label="Lainnya" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="stats-bar-lainnya"></span></div>
+              </div>
+              <div class="dashboard-stat-row libur" data-stat="libur">
+                <div class="dashboard-stat-row-heading"><span><i class="fas fa-umbrella-beach" aria-hidden="true"></i> Libur / hari besar</span><strong id="stats-libur">-</strong></div>
+                <div class="dashboard-stat-track" role="progressbar" aria-label="Libur dan hari besar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="stats-bar-libur"></span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <div id="student-menu-grid" class="dashboard-menu-grid" role="group" aria-label="Menu layanan siswa">
+          <button type="button" class="dashboard-menu-card attendance-menu-card" data-panel="attendance" onclick="showAbsenPanel()">
+            <span class="dashboard-menu-icon"><i class="fas fa-calendar-check" aria-hidden="true"></i></span>
+            <span class="dashboard-menu-label">Absensi</span>
+          </button>
+          <button type="button" class="dashboard-menu-card profile-menu-card" data-panel="profile" onclick="showProfilePanel()">
+            <span class="dashboard-menu-icon"><i class="fas fa-user-circle" aria-hidden="true"></i></span>
+            <span class="dashboard-menu-label">Profil</span>
+          </button>
+          <button type="button" class="dashboard-menu-card ktds-menu-card" data-panel="ktds" onclick="showKtdsPanel()">
+            <span class="dashboard-menu-icon"><i class="fas fa-address-card" aria-hidden="true"></i></span>
+            <span class="dashboard-menu-label">KTDS</span>
+          </button>
+          <button type="button" class="dashboard-menu-card qr-menu-card" onclick="showStudentQrModal()">
+            <span class="dashboard-menu-icon"><i class="fas fa-qrcode" aria-hidden="true"></i></span>
+            <span class="dashboard-menu-label">QR Siswa</span>
+          </button>
+          <button type="button" class="dashboard-menu-card digital-card-menu-card" onclick="showNotification('Kartu Pelajar Digital masih dalam pengembangan.', 'info')">
+            <span class="dashboard-menu-icon"><i class="fas fa-id-card" aria-hidden="true"></i></span>
+            <span class="dashboard-menu-label">Pelajar Digital</span>
+          </button>
+          <button type="button" class="dashboard-menu-card logout-menu-card" onclick="showLogoutConfirmation()">
+            <span class="dashboard-menu-icon"><i class="fas fa-sign-out-alt" aria-hidden="true"></i></span>
+            <span class="dashboard-menu-label">Keluar</span>
+          </button>
+        </div>
+        <p id="staff-dashboard-note" class="staff-dashboard-note" hidden></p>
+        <div id="staff-menu-grid" class="dashboard-menu-grid staff-menu-grid" role="group" aria-label="Menu admin dan guru" hidden>
+          <button type="button" class="dashboard-menu-card staff-monitor-menu-card" onclick="showStaffFeature('monitoring')">
+            <span class="dashboard-menu-icon"><i class="fas fa-clipboard-list" aria-hidden="true"></i></span>
+            <span class="dashboard-menu-label">Pantau Absensi</span>
+          </button>
+          <button id="staff-manage-menu" type="button" class="dashboard-menu-card staff-manage-menu-card" onclick="showStaffFeature('manage')" hidden>
+            <span class="dashboard-menu-icon"><i class="fas fa-users-cog" aria-hidden="true"></i></span>
+            <span class="dashboard-menu-label">Kelola Guru</span>
+          </button>
+          <button id="staff-event-menu" type="button" class="dashboard-menu-card staff-event-menu-card" onclick="showStaffFeature('events')" hidden>
+            <span class="dashboard-menu-icon"><i class="fas fa-calendar" aria-hidden="true"></i></span>
+            <span class="dashboard-menu-label">Event</span>
+          </button>
+          <button id="staff-holiday-menu" type="button" class="dashboard-menu-card staff-holiday-menu-card" onclick="showStaffFeature('holidays')" hidden>
+            <span class="dashboard-menu-icon"><i class="fas fa-umbrella-beach" aria-hidden="true"></i></span>
+            <span class="dashboard-menu-label">Hari Libur</span>
+          </button>
+          <button id="staff-early-dismissal-menu" type="button" class="dashboard-menu-card staff-early-dismissal-menu-card" onclick="showStaffFeature('earlyDismissals')" hidden>
+            <span class="dashboard-menu-icon"><i class="fas fa-person-walking-arrow-right" aria-hidden="true"></i></span>
+            <span class="dashboard-menu-label">Pulang Cepat</span>
+          </button>
+          <button type="button" class="dashboard-menu-card logout-menu-card" onclick="showLogoutConfirmation()">
+            <span class="dashboard-menu-icon"><i class="fas fa-sign-out-alt" aria-hidden="true"></i></span>
+            <span class="dashboard-menu-label">Keluar</span>
+          </button>
+        </div>
+        <section id="staff-directory-panel" class="staff-directory-panel" aria-labelledby="staff-directory-title" hidden>
+          <div class="staff-directory-heading">
+            <div>
+              <span class="dashboard-eyebrow">Manajemen akun</span>
+              <h3 id="staff-directory-title">Data Guru</h3>
+              <p>Atur role guru. Akun superadmin dilindungi dan tidak dapat diubah.</p>
+            </div>
+            <button type="button" class="staff-refresh-button" aria-label="Muat ulang data guru" title="Muat ulang data guru" onclick="refreshStaffFeature('manage', this)">
+              <i class="fas fa-rotate" aria-hidden="true"></i>
+            </button>
+          </div>
+          <p id="staff-directory-status" class="staff-directory-status" role="status" aria-live="polite"></p>
+          <div id="staff-directory-content" class="staff-directory-content"></div>
+        </section>
+        <section id="staff-event-panel" class="staff-directory-panel" aria-labelledby="staff-event-title" hidden>
+          <div class="staff-directory-heading">
+            <div>
+              <span class="dashboard-eyebrow">Manajemen event</span>
+              <h3 id="staff-event-title">Manajemen Event</h3>
+              <p>Tambah atau edit tanggal kegiatan. Siswa yang absen pada tanggal event tercatat sebagai HB.</p>
+            </div>
+            <div class="staff-directory-heading-actions">
+              <button type="button" class="staff-refresh-button" aria-label="Muat ulang daftar event" title="Muat ulang daftar event" onclick="refreshStaffFeature('events', this)">
+                <i class="fas fa-rotate" aria-hidden="true"></i>
+              </button>
+              <button id="staff-event-add" type="button" class="staff-event-add" aria-label="Tambah event" title="Tambah event" onclick="showEventForm()">
+                <i class="fas fa-plus" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          <form id="staff-event-form" class="staff-event-form" onsubmit="event.preventDefault(); saveEventForm();" hidden>
+            <h4 id="staff-event-form-title">Tambah Event</h4>
+            <div class="staff-event-form-fields">
+              <label for="staff-event-date">Tanggal</label>
+              <input id="staff-event-date" type="date" required>
+              <label for="staff-event-name">Nama kegiatan</label>
+              <input id="staff-event-name" type="text" maxlength="150" required>
+            </div>
+            <div class="staff-event-form-actions">
+              <button id="staff-event-save" type="submit"><i class="fas fa-save" aria-hidden="true"></i><span>Tambah Event</span></button>
+              <button id="staff-event-cancel" type="button" class="staff-event-cancel" onclick="cancelEventEdit()" hidden>Batal</button>
+            </div>
+          </form>
+          <p id="staff-event-status" class="staff-directory-status" role="status" aria-live="polite"></p>
+          <ul id="staff-event-list" class="staff-event-list"></ul>
+        </section>
+        <section id="staff-holiday-panel" class="staff-directory-panel" aria-labelledby="staff-holiday-title" hidden>
+          <div class="staff-directory-heading">
+            <div>
+              <span class="dashboard-eyebrow">Kalender sekolah</span>
+              <h3 id="staff-holiday-title">Pengaturan Hari Libur</h3>
+              <p>Tambah, edit, atau hapus tanggal hari libur sekolah.</p>
+            </div>
+            <div class="staff-directory-heading-actions">
+              <button type="button" class="staff-refresh-button" aria-label="Muat ulang daftar hari libur" title="Muat ulang daftar hari libur" onclick="refreshStaffFeature('holidays', this)">
+                <i class="fas fa-rotate" aria-hidden="true"></i>
+              </button>
+              <button id="staff-holiday-add" type="button" class="staff-event-add" aria-label="Tambah hari libur" title="Tambah hari libur" onclick="showHolidayForm()">
+                <i class="fas fa-plus" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          <form id="staff-holiday-form" class="staff-event-form" onsubmit="event.preventDefault(); saveHolidayForm();" hidden>
+            <h4 id="staff-holiday-form-title">Tambah Hari Libur</h4>
+            <div class="staff-event-form-fields">
+              <label for="staff-holiday-date">Tanggal</label>
+              <input id="staff-holiday-date" type="date" required>
+              <label for="staff-holiday-name">Nama kegiatan</label>
+              <input id="staff-holiday-name" type="text" maxlength="150" required>
+            </div>
+            <div class="staff-event-form-actions">
+              <button id="staff-holiday-save" type="submit"><i class="fas fa-save" aria-hidden="true"></i><span>Tambah Hari Libur</span></button>
+              <button id="staff-holiday-cancel" type="button" class="staff-event-cancel" onclick="cancelHolidayEdit()" hidden>Batal</button>
+            </div>
+          </form>
+          <p id="staff-holiday-status" class="staff-directory-status" role="status" aria-live="polite"></p>
+          <ul id="staff-holiday-list" class="staff-event-list"></ul>
+        </section>
+        <section id="staff-early-dismissal-panel" class="staff-directory-panel" aria-labelledby="staff-early-dismissal-title" hidden>
+          <div class="staff-directory-heading">
+            <div>
+              <span class="dashboard-eyebrow">Kalender sekolah</span>
+              <h3 id="staff-early-dismissal-title">Pengaturan Pulang Cepat</h3>
+              <p>Atur tanggal kegiatan sekolah yang berakhir lebih awal.</p>
+            </div>
+            <div class="staff-directory-heading-actions">
+              <button type="button" class="staff-refresh-button" aria-label="Muat ulang daftar pulang cepat" title="Muat ulang daftar pulang cepat" onclick="refreshStaffFeature('earlyDismissals', this)">
+                <i class="fas fa-rotate" aria-hidden="true"></i>
+              </button>
+              <button id="staff-early-dismissal-add" type="button" class="staff-event-add" aria-label="Tambah tanggal pulang cepat" title="Tambah tanggal pulang cepat" onclick="showEarlyDismissalForm()">
+                <i class="fas fa-plus" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          <form id="staff-early-dismissal-form" class="staff-event-form" onsubmit="event.preventDefault(); saveEarlyDismissalForm();" hidden>
+            <h4 id="staff-early-dismissal-form-title">Tambah Pulang Cepat</h4>
+            <div class="staff-event-form-fields">
+              <label for="staff-early-dismissal-date">Tanggal</label>
+              <input id="staff-early-dismissal-date" type="date" required>
+              <label for="staff-early-dismissal-name">Nama kegiatan</label>
+              <input id="staff-early-dismissal-name" type="text" maxlength="150">
+            </div>
+            <div class="staff-event-form-actions">
+              <button id="staff-early-dismissal-save" type="submit"><i class="fas fa-save" aria-hidden="true"></i><span>Tambah Pulang Cepat</span></button>
+              <button id="staff-early-dismissal-cancel" type="button" class="staff-event-cancel" onclick="cancelEarlyDismissalEdit()" hidden>Batal</button>
+            </div>
+          </form>
+          <p id="staff-early-dismissal-status" class="staff-directory-status" role="status" aria-live="polite"></p>
+          <ul id="staff-early-dismissal-list" class="staff-event-list"></ul>
+        </section>
+        <section id="staff-monitoring-panel" class="staff-directory-panel" aria-labelledby="staff-monitoring-title" hidden>
+          <div class="staff-directory-heading">
+            <div>
+              <span class="dashboard-eyebrow">Pemantauan kehadiran</span>
+              <h3 id="staff-monitoring-title">Pilih Kelas</h3>
+              <p>Pilih kelas untuk menampilkan daftar siswa yang terdaftar.</p>
+            </div>
+            <button type="button" class="staff-refresh-button" aria-label="Muat ulang pemantauan absensi" title="Muat ulang pemantauan absensi" onclick="refreshStaffFeature('monitoring', this)">
+              <i class="fas fa-rotate" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div id="staff-monitoring-class-controls" class="staff-monitoring-class-controls" hidden>
+            <h4 id="staff-monitoring-class-label">Daftar Kelas</h4>
+            <ul id="staff-monitoring-class-list" class="staff-monitoring-class-list" aria-labelledby="staff-monitoring-class-label"></ul>
+          </div>
+          <div id="staff-monitoring-student-view" class="staff-monitoring-student-view" hidden>
+            <button type="button" class="staff-directory-back staff-monitoring-back-classes" onclick="showMonitoringClasses()">
+              <i class="fas fa-arrow-left" aria-hidden="true"></i><span>Kembali ke daftar kelas</span>
+            </button>
+            <h4 id="staff-monitoring-student-title">Daftar Siswa</h4>
+            <div id="staff-monitoring-students" class="staff-directory-content"></div>
+          </div>
+          <p id="staff-monitoring-status" class="staff-directory-status" role="status" aria-live="polite"></p>
+        </section>
+      </section>
+
+      <div id="absenContent" class="fade-in">
+        <div class="dashboard-section-heading">
+          <div>
+            <span class="dashboard-eyebrow">Kehadiran</span>
+            <h2 id="attendance-title" tabindex="-1">Riwayat Absensi</h2>
+            <p>Pantau kehadiran harian Anda.</p>
+          </div>
+        </div>
+        <div class="filter-container">
+          <label class="sr-only" for="bulanFilter">Pilih bulan</label>
+          <select id="bulanFilter" aria-label="Pilih bulan"></select>
+          <label class="sr-only" for="tahunFilter">Pilih tahun</label>
+          <select id="tahunFilter" aria-label="Pilih tahun"></select>
+          <button type="button" aria-label="Muat ulang absensi" title="Muat ulang absensi" onclick="filterData()"><i class="fas fa-sync-alt inline-block"></i></button>
+          <button type="button" id="pdfBtn" aria-label="Unduh laporan PDF" title="Unduh laporan PDF" onclick="generatePdfReport()"><i class="fas fa-file-pdf inline-block"></i></button>
+        </div>
+        <div id="attendance-state" class="attendance-state" role="status" aria-live="polite" hidden>
+          <span class="attendance-state-icon" aria-hidden="true"><i class="fas fa-circle-notch"></i></span>
+          <div class="attendance-state-copy">
+            <strong id="attendance-state-title"></strong>
+            <p id="attendance-state-message"></p>
+          </div>
+          <button id="attendance-retry" type="button" onclick="filterData()" hidden>
+            <i class="fas fa-redo-alt" aria-hidden="true"></i><span>Coba lagi</span>
+          </button>
+        </div>
+
+        <div class="calendar-container" id="attendance-calendar">
+          <div class="calendar-header">
+            <span id="month-year-display"></span>
+          </div>
+          <div class="calendar-weekdays">
+            <span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span>
+          </div>
+          <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+
+        <div class="summary-dashboard" id="summary-dashboard">
+          <div class="summary-heading">
+            <h3>Rekap absensi</h3>
+            <span id="summary-period" aria-live="polite"></span>
+          </div>
+          <div class="summary-item hadir">
+            <i class="fas fa-check-circle" aria-hidden="true"></i>
+            <strong id="sum-hadir">0</strong>
+            <span>Hadir</span>
+          </div>
+          <div class="summary-item absen">
+            <i class="fas fa-times-circle" aria-hidden="true"></i>
+            <strong id="sum-absen">0</strong>
+            <span>Absen</span>
+          </div>
+          <div class="summary-item terlambat">
+            <i class="fas fa-clock" aria-hidden="true"></i>
+            <strong id="sum-terlambat">0</strong>
+            <span>Terlambat</span>
+          </div>
+          <div class="summary-item izin">
+            <i class="fas fa-info-circle" aria-hidden="true"></i>
+            <strong id="sum-izin">0</strong>
+            <span>Izin / Sakit</span>
+          </div>
+        </div>
+
+        <div class="legend-container" id="attendance-legend">
+          <div class="legend-heading">
+            <h4>Keterangan Status Absen</h4>
+            <button id="legend-toggle" class="legend-toggle" type="button" aria-controls="legend-grid"
+              aria-expanded="false" onclick="toggleStatusLegend()">Lihat semua status</button>
+          </div>
+          <div class="legend-grid" id="legend-grid">
+            <div class="legend-item"><span class="legend-color-box H"></span><span class="legend-code">H</span><span>Hadir</span></div>
+            <div class="legend-item"><span class="legend-color-box A"></span><span class="legend-code">A</span><span>Alpa</span></div>
+            <div class="legend-item"><span class="legend-color-box I"></span><span class="legend-code">I</span><span>Izin</span></div>
+            <div class="legend-item"><span class="legend-color-box I"></span><span class="legend-code">S</span><span>Sakit</span></div>
+            <div class="legend-item"><span class="legend-color-box T"></span><span class="legend-code">T</span><span>Terlambat</span></div>
+            <div class="legend-item"><span class="legend-color-box T"></span><span class="legend-code">TAP</span><span>Tidak Absen Pulang</span></div>
+            <div class="legend-item"><span class="legend-color-box T"></span><span class="legend-code">TAM</span><span>Tidak Absen Masuk</span></div>
+            <div class="legend-item"><span class="legend-color-box T"></span><span class="legend-code">TAPT</span><span>Tidak Absen Pulang & Terlambat</span>
+            </div>
+            <div class="legend-item"><span class="legend-color-box P"></span><span class="legend-code">P</span><span>Pulang</span></div>
+            <div class="legend-item"><span class="legend-color-box T"></span><span class="legend-code">PT</span><span>Pulang & Terlambat</span></div>
+            <div class="legend-item"><span class="legend-color-box H"></span><span class="legend-code">HB</span><span>Hari Besar</span></div>
+            <div class="legend-item"><span class="legend-color-box OFF"></span><span class="legend-code">OFF</span><span>Libur</span></div>
+          </div>
+        </div>
+      </div>
+
+      <section id="profileContent" class="profile-panel" style="display:none;" aria-labelledby="profile-title">
+        <div class="profile-card">
+          <div class="profile-heading">
+            <div>
+              <span class="profile-eyebrow">Akun siswa</span>
+              <h2 id="profile-title" tabindex="-1">Profil</h2>
+            </div>
+          </div>
+
+          <div class="profile-identity">
+            <span class="profile-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
+            <div>
+              <span class="profile-identity-label">Nama siswa</span>
+              <p class="profile-name" id="profileNama"></p>
+              <p class="profile-nis"><span>NIS</span><strong id="profileNis"></strong></p>
+            </div>
+          </div>
+
+          <div class="profile-form">
+            <div class="profile-form-heading">
+              <span class="profile-form-icon" aria-hidden="true"><i class="fas fa-sliders-h"></i></span>
+              <div>
+                <h3>Informasi akun</h3>
+                <p>Perbarui email atau kata sandi akun.</p>
+              </div>
+            </div>
+            <label for="profileEmail">Email</label>
+            <input type="email" id="profileEmail" placeholder="Email" autocomplete="email">
+            <label for="profilePassword">Password baru</label>
+            <div class="password-container">
+              <input type="password" id="profilePassword" placeholder="Kosongkan jika tidak ingin mengubah"
+                autocomplete="new-password" aria-describedby="profile-password-hint">
+              <button type="button" class="profile-password-toggle" aria-label="Tampilkan password baru"
+                aria-pressed="false" onclick="toggleProfilePasswordVisibility()">
+                <i class="fas fa-eye" aria-hidden="true"></i>
+              </button>
+            </div>
+            <p class="profile-hint" id="profile-password-hint">Password hanya diperbarui jika kolom ini diisi.</p>
+            <button type="button" class="profile-save-button" onclick="updateProfile()">
+              <i class="fas fa-save inline-block mr-2"></i>Simpan Perubahan
+            </button>
+          </div>
+        </div>
+      </section>
+      <section id="ktdsContent" class="profile-panel ktds-panel" style="display:none;" aria-labelledby="ktds-title">
+        <div class="profile-card ktds-card">
+          <div class="profile-heading">
+            <div>
+              <span class="profile-eyebrow">Data siswa</span>
+              <h2 id="ktds-title" tabindex="-1">Keterangan Diri Siswa (KTDS)</h2>
+              <p class="ktds-description">Periksa dan lengkapi data diri dengan benar. Perubahan hanya berlaku untuk akun Anda.</p>
+            </div>
+            <div class="ktds-actions">
+              <button id="ktds-edit-button" type="button" class="staff-refresh-button" aria-label="Edit KTDS" title="Edit KTDS" onclick="setKtdsEditMode(true)" disabled>
+                <i class="fas fa-pen" aria-hidden="true"></i>
+              </button>
+              <button id="ktds-refresh-button" type="button" class="staff-refresh-button" aria-label="Muat ulang KTDS" title="Muat ulang KTDS" onclick="loadKtds()">
+                <i class="fas fa-rotate" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          <div class="profile-identity">
+            <span class="profile-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
+            <div>
+              <span class="profile-identity-label">Nama siswa</span>
+              <p class="profile-name" id="ktdsNama"></p>
+              <p class="profile-nis"><span>NIS</span><strong id="ktdsNis"></strong></p>
+            </div>
+          </div>
+          <p id="ktds-status" class="staff-directory-status" role="status" aria-live="polite"></p>
+          <div id="ktds-readonly-fields" class="ktds-fields" aria-live="polite"></div>
+          <form id="ktds-form" onsubmit="event.preventDefault(); saveKtds();">
+            <div id="ktds-fields" class="ktds-fields"></div>
+            <div class="ktds-form-actions">
+              <button id="ktds-cancel-button" type="button" class="ktds-cancel-button" onclick="setKtdsEditMode(false)">Batal</button>
+              <button id="ktds-save-button" type="submit" class="profile-save-button" disabled>
+                <i class="fas fa-save" aria-hidden="true"></i><span>Simpan KTDS</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Kesiswaan smknesbu 2025 &copy; malware</p>
+  </div>
+
+  <div id="detail-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-date">
+    <div class="modal-content">
+      <button type="button" class="close-button" aria-label="Tutup detail absensi"
+        onclick="closeModal('detail-modal')"><i class="fas fa-times" aria-hidden="true"></i></button>
+      <h4 id="modal-date"></h4>
+      <p id="modal-status"></p>
+      <p id="modal-time-in"></p>
+      <p id="modal-time-out"></p>
+      <button type="button" class="share-icon" aria-label="Bagikan detail absensi" title="Bagikan detail absensi"
+        onclick="shareDetailModal()"><i class="fas fa-share-alt" aria-hidden="true"></i></button>
+    </div>
+  </div>
+
+  <div id="logout-confirmation-modal" class="modal">
+    <div class="modal-content">
+      <h4>Konfirmasi Logout</h4>
+      <p>Apakah Anda yakin ingin keluar dari sesi ini?</p>
+      <div class="modal-buttons">
+        <button onclick="performLogout()">Ya, keluar</button>
+        <button onclick="closeModal('logout-confirmation-modal')">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="email-notification-modal" class="modal">
+    <div class="modal-content">
+      <h4>Notifikasi</h4>
+      <p>Silahkan tambahkan email untuk login</p>
+      <div class="modal-buttons">
+        <button onclick="closeModal('email-notification-modal')">Ingatkan Saya</button>
+        <button onclick="redirectToProfileAndClose()">Tambahkan</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="student-qr-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="student-qr-title">
+    <div class="modal-content student-qr-modal-content">
+      <button type="button" class="close-button" aria-label="Tutup QR siswa"
+        onclick="closeModal('student-qr-modal')"><i class="fas fa-times" aria-hidden="true"></i></button>
+      <span class="student-qr-eyebrow">IDENTITAS SISWA</span>
+      <h2 id="student-qr-title">QR Siswa</h2>
+      <div id="student-qr-code" class="student-qr-code" role="img" aria-label="QR code berisi NIS siswa"></div>
+      <p id="student-qr-message" class="student-qr-message" role="status" aria-live="polite"></p>
+      <div class="student-qr-identity">
+        <strong id="student-qr-name"></strong>
+        <span id="student-qr-class"></span>
+        <span id="student-qr-nis"></span>
+      </div>
+      <p class="student-qr-note">Tunjukkan QR ini saat diperlukan untuk identifikasi siswa.</p>
+    </div>
+  </div>
+
+  <!-- Include external JavaScript -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/mock_data.js"></script>
+  <script src="js/script.js"></script>
+</body>
+
+</html>
