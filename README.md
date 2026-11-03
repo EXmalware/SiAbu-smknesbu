@@ -70,6 +70,7 @@ Frontend menyertakan `manifest.webmanifest`, ikon aplikasi, dan service worker. 
 - ✅ Summary dashboard (Hadir, Absen, Terlambat, Izin)
 - ✅ Detail absensi per tanggal
 - ✅ Update profil dan password
+- ✅ Tampilan data izin siswa untuk admin dan superadmin
 - ✅ Generate laporan PDF
 - ✅ Share detail absensi
 - ✅ **Responsive design untuk mobile**
@@ -145,15 +146,25 @@ Menu KTDS menampilkan data dalam mode baca terlebih dahulu; tombol edit membuka 
 
 `ROLE` berisi `ADMIN`, `GURU`, atau `SUPERADMIN`. Akun staf dapat masuk menggunakan NIP atau email. Atur `SUPERADMIN` secara langsung pada sheet; role ini tidak dapat diubah lewat menu aplikasi. Admin dan superadmin dapat melihat daftar guru dan mengubah role akun guru/admin. Endpoint pengelolaan memvalidasi sesi staf dan role terhadap sheet di backend. Admin dan superadmin dapat melihat, menambah, serta mengedit event di sheet `EVENT`; penghapusan event hanya tersedia untuk superadmin. Admin dan superadmin dapat menambah, mengedit, serta menghapus hari libur di sheet `HARILIBUR`; daftar ini juga digunakan untuk menandai hari libur pada kehadiran. Pengaturan tanggal pulang cepat di sheet `PULANGCEPAT` hanya tersedia bagi superadmin.
 
-Menu Pantau Absensi langsung menampilkan pilihan kelas setelah dibuka dan menampilkan nama/NIS siswa setelah kelas dipilih. Endpoint backend mengizinkan role `GURU`, `ADMIN`, dan `SUPERADMIN` serta memverifikasi token sesi login staf pada setiap permintaan. Token kedaluwarsa setelah enam jam dan dicabut saat logout.
+Dashboard guru, admin, dan superadmin menampilkan ringkasan absensi hari ini: total siswa, hadir, izin, sakit, terlambat, alpa, belum absen, dan libur/HB. Kartu ringkasan menampilkan persentase dan progress bar; klik kartu untuk menyorot kategori dan membaca jumlah/persentasenya. Data dimuat dari sheet `SISWA`, `ABSEN`, `IZIN`, `EVENT`, dan `HARILIBUR`, dan dapat diperbarui melalui tombol muat ulang.
+
+Menu Pantau Absensi langsung menampilkan pilihan kelas setelah dibuka dan menampilkan nama/NIS siswa setelah kelas dipilih. Nama wali kelas dan guru BK untuk kelas terpilih dibaca dari sheet `BK` dengan kolom `KELAS`, `WALIKELAS`, dan `GURUBK`. Keterangan memakai kode singkat, seperti `H`, `I`, `S`, dan `A`. Menu Data Izin tersedia untuk guru, admin, dan superadmin; tanggal awalnya hari ini dan ditampilkan di bawah tombol Terapkan dengan format hari, tanggal, bulan, dan tahun. Tabel menampilkan kelas, nama/NIS, serta keterangan singkat. Tanggal/kelas dapat difilter dari sheet `IZIN`. Endpoint backend memverifikasi token sesi dan role untuk setiap permintaan. Token kedaluwarsa setelah enam jam dan dicabut saat logout.
 
 ### Sheet ABSEN
 | ID | Tanggal | Jam Masuk | Jam Pulang | NIS | Keterangan |
 |----|---------|-----------|------------|-----|------------|
 
+### Sheet BK
+| KELAS | WALIKELAS | GURUBK |
+|-------|-----------|--------|
+
+Data wali kelas dan guru BK ditampilkan pada Pantau Absensi setelah kelas dipilih. Setiap kelas sebaiknya memiliki satu baris pemetaan.
+
 ### Sheet IZIN
 | TANGGAL | HARI | KELAS | NAMA SISWA | NIS | KETERANGAN |
 |---------|------|-------|------------|-----|------------|
+
+Data ini ditampilkan melalui menu **Data Izin** untuk guru, admin, dan superadmin. Filter awal menampilkan tanggal hari ini; kosongkan tanggal atau pilih tanggal/kelas lain untuk menampilkan catatan sesuai filter.
 
 ### Sheet HARILIBUR
 | TANGGAL | NAMA KEGIATAN |

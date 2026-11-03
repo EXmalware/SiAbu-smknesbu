@@ -9,6 +9,10 @@ const MOCK_STUDENT_ACCOUNTS = [
     { nis: "24111004", nama: "Alya Mock", kelas: "XII RPL 1" },
     { nis: "24111005", nama: "Bima Mock", kelas: "XI RPL 2" }
 ];
+const MOCK_CLASS_ADVISORS = {
+    "XII RPL 1": { waliKelas: "Wali Kelas Mock", guruBk: "Guru BK Mock" },
+    "XI RPL 2": { waliKelas: "Wali Kelas Mock", guruBk: "Guru BK Mock" }
+};
 
 const MOCK_EVENTS = [
     { date: "2026-11-01", name: "Hari Besar Mock" },
@@ -193,7 +197,86 @@ const MOCK_DATA = {
                     ? nis === "24111003" ? "HB" : "A"
                     : nis === "24111003" ? "H" : "Belum absen"
             }));
-        return { status: "success", kelas: selectedClass, students };
+        const classAdvisors = MOCK_CLASS_ADVISORS[selectedClass.toUpperCase()] || {};
+        return {
+            status: "success",
+            kelas: selectedClass,
+            waliKelas: classAdvisors.waliKelas || "-",
+            guruBk: classAdvisors.guruBk || "-",
+            students
+        };
+    },
+    getTodayAttendanceSummary: ({ sessionToken } = {}) => {
+        if (!authenticateMockMonitoringStaff(sessionToken)) {
+            return { status: "error", message: "Sesi login tidak valid. Silakan masuk kembali." };
+        }
+        const today = new Date();
+        const isEventDay = MOCK_EVENTS.some(eventItem =>
+            eventItem.date === `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
+        );
+        return {
+            status: "success",
+            tanggal: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`,
+            summary: {
+                total: MOCK_STUDENT_ACCOUNTS.length,
+                hadir: isEventDay ? 0 : 1,
+                izin: 0,
+                sakit: 0,
+                terlambat: 0,
+                alpa: isEventDay ? MOCK_STUDENT_ACCOUNTS.length - 1 : 0,
+                belumAbsen: isEventDay ? 0 : MOCK_STUDENT_ACCOUNTS.length - 1,
+                libur: isEventDay ? 1 : 0
+            }
+        };
+    },
+    getPermissionData: ({ sessionToken, tanggal, kelas } = {}) => {
+        if (!authenticateMockMonitoringStaff(sessionToken)) {
+            return { status: "error", message: "Data izin hanya tersedia untuk akun staf." };
+        }
+        const today = new Date();
+        const dateKey = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+        const todayKey = dateKey(today);
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayKey = dateKey(yesterday);
+        const mockRecords = [
+            {
+                dateKey: todayKey,
+                tanggal: todayKey.split("-").reverse().join("-"),
+                hari: today.toLocaleDateString("id-ID", { weekday: "long" }),
+                kelas: "XII RPL 1",
+                nama: "Alya Mock",
+                nis: "24111004",
+                keterangan: "SAKIT"
+            },
+            {
+                dateKey: yesterdayKey,
+                tanggal: yesterdayKey.split("-").reverse().join("-"),
+                hari: yesterday.toLocaleDateString("id-ID", { weekday: "long" }),
+                kelas: "XI RPL 2",
+                nama: "Bima Mock",
+                nis: "24111005",
+                keterangan: "IZIN"
+            }
+        ];
+        const dateFilter = String(tanggal || "").trim();
+        const classFilter = String(kelas || "").trim().toUpperCase();
+        const records = mockRecords.filter(record =>
+            (!dateFilter || record.dateKey === dateFilter) &&
+            (!classFilter || record.kelas.toUpperCase() === classFilter)
+        );
+        return {
+            status: "success",
+            records: records.map(record => ({
+                tanggal: record.tanggal,
+                hari: record.hari,
+                kelas: record.kelas,
+                nama: record.nama,
+                nis: record.nis,
+                keterangan: record.keterangan
+            })),
+            classes: [...new Set(mockRecords.map(record => record.kelas))].sort()
+        };
     },
     getEventDates: ({ sessionToken } = {}) => {
         if (!authenticateMockManager(sessionToken)) {

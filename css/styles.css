@@ -3452,6 +3452,151 @@ body.dark-mode .dashboard-home-heading p {
   line-height: 1.5;
 }
 
+.staff-dashboard-summary-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.staff-dashboard-summary-heading h3 {
+  margin: 0.2rem 0 0;
+  color: #24324b;
+  font-size: 1.05rem;
+}
+
+.staff-dashboard-summary-heading p {
+  margin: 0.25rem 0 0;
+  color: #68758d;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.staff-summary-status {
+  margin: 0.7rem 0;
+  color: #52617a;
+  font-size: 0.8rem;
+}
+
+.staff-summary-status.is-error {
+  color: #b42318;
+}
+
+.staff-summary-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+  gap: 0.5rem;
+}
+
+.staff-summary-card {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-rows: auto 4px;
+  align-items: center;
+  column-gap: 0.45rem;
+  row-gap: 0.45rem;
+  min-width: 0;
+  min-height: 76px;
+  margin: 0;
+  padding: 0.55rem;
+  border: 1px solid #dce5f4;
+  border-radius: 9px;
+  background: #fff;
+  color: #26354d;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.staff-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 16px rgba(34, 59, 105, 0.1);
+}
+
+.staff-summary-card:focus-visible {
+  outline: 3px solid rgba(49, 86, 211, 0.35);
+  outline-offset: 2px;
+}
+
+.staff-summary-card.is-selected {
+  border-color: var(--summary-color, #3156d3);
+  box-shadow: 0 0 0 2px rgba(49, 86, 211, 0.18);
+  transform: translateY(-2px);
+}
+
+.staff-summary-card.total { --summary-color: #3156d3; }
+.staff-summary-card.hadir { --summary-color: #198754; }
+.staff-summary-card.izin { --summary-color: #087990; }
+.staff-summary-card.sakit { --summary-color: #6f42c1; }
+.staff-summary-card.terlambat { --summary-color: #8a5a00; }
+.staff-summary-card.alpa { --summary-color: #c02f3e; }
+.staff-summary-card.belum { --summary-color: #52617a; }
+.staff-summary-card.libur { --summary-color: #52617a; }
+
+.staff-summary-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  grid-row: 1;
+  place-items: center;
+  border-radius: 8px;
+  background: #eef2fa;
+  color: var(--summary-color, #3156d3);
+  font-size: 0.82rem;
+}
+
+.staff-summary-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.22rem;
+}
+
+.staff-summary-copy > span {
+  color: #34425b;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.staff-summary-card strong {
+  color: #26354d;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.staff-summary-copy small {
+  color: #596579;
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+
+.staff-summary-track {
+  display: block;
+  grid-column: 1 / -1;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf1f7;
+}
+
+.staff-summary-track > span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--summary-color, #3156d3);
+  transition: width 0.65s cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+
+.staff-summary-card.hadir strong { color: #166345; }
+.staff-summary-card.izin strong { color: #08677a; }
+.staff-summary-card.sakit strong { color: #59359a; }
+.staff-summary-card.terlambat strong { color: #754d00; }
+.staff-summary-card.alpa strong { color: #a52231; }
+.staff-summary-card.belum strong { color: #52617a; }
+.staff-summary-card.libur strong { color: #718096; }
+
 .staff-directory-panel[hidden] {
   display: none !important;
 }
@@ -3549,6 +3694,77 @@ body.dark-mode .dashboard-home-heading p {
   white-space: nowrap;
 }
 
+body.light-mode .staff-monitoring-attendance-status.status-H {
+  border: 1px solid #a8dfc7;
+  background: #e5f6ef;
+  color: #166345;
+}
+
+body.light-mode .staff-monitoring-attendance-status.status-A {
+  border: 1px solid #f2bbbb;
+  background: #fff0f0;
+  color: #a52c35;
+}
+
+body.light-mode .staff-monitoring-attendance-status.status-T {
+  border: 1px solid #f0d48d;
+  background: #fff7e6;
+  color: #805500;
+}
+
+body.light-mode .staff-monitoring-attendance-status.status-I {
+  border: 1px solid #a8dfe8;
+  background: #e9f8fb;
+  color: #126475;
+}
+
+body.light-mode .staff-monitoring-attendance-status.status-P {
+  border: 1px solid var(--color-primary);
+  background: #dbeafe;
+}
+
+body.light-mode .staff-monitoring-attendance-status.weekend-day {
+  border: 1px solid #e2e6ee;
+  background: #f0f2f7;
+  color: #718096;
+}
+
+body.dark-mode .staff-monitoring-attendance-status.status-H {
+  border: 1px solid var(--color-hadir);
+  background: #1a6643;
+  color: #fff;
+}
+
+body.dark-mode .staff-monitoring-attendance-status.status-A {
+  border: 1px solid var(--color-absen);
+  background: #7c2d2f;
+  color: #fff;
+}
+
+body.dark-mode .staff-monitoring-attendance-status.status-T {
+  border: 1px solid var(--color-terlambat);
+  background: #735f1c;
+  color: #fff;
+}
+
+body.dark-mode .staff-monitoring-attendance-status.status-I {
+  border: 1px solid var(--color-izin);
+  background: #0f5e6e;
+  color: #fff;
+}
+
+body.dark-mode .staff-monitoring-attendance-status.status-P {
+  border: 1px solid var(--color-primary);
+  background: #1e3a8a;
+  color: #fff;
+}
+
+body.dark-mode .staff-monitoring-attendance-status.weekend-day {
+  border: 1px solid #46536a;
+  background: #303a4d;
+  color: #c1ccdc;
+}
+
 .staff-monitoring-student-view h4 {
   margin: 0 0 0.6rem;
   color: #34425b;
@@ -3557,6 +3773,62 @@ body.dark-mode .dashboard-home-heading p {
 
 .staff-monitoring-back-classes {
   margin-bottom: 0.85rem;
+}
+
+.staff-permission-filters {
+  display: grid;
+  grid-template-columns: auto minmax(150px, 1fr) auto minmax(150px, 1fr) auto;
+  align-items: end;
+  gap: 0.55rem 0.75rem;
+  margin: 0.8rem 0;
+}
+
+.staff-permission-filters label {
+  color: #34425b;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.staff-permission-filters input,
+.staff-permission-filters select {
+  min-width: 0;
+  min-height: 40px;
+  margin: 0;
+}
+
+.staff-permission-submit {
+  display: grid;
+  justify-items: start;
+  gap: 0.35rem;
+}
+
+.staff-permission-submit button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: auto;
+  min-height: 40px;
+  margin: 0;
+  padding: 0.55rem 0.8rem;
+  border-radius: 9px;
+  background: #3156d3 !important;
+  color: #fff !important;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.staff-permission-date-display {
+  min-height: 1em;
+  color: #52617a;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.staff-permission-table {
+  min-width: 480px;
 }
 
 .staff-directory-panel {
@@ -3580,6 +3852,13 @@ body.dark-mode .dashboard-home-heading p {
   margin: 0.2rem 0;
   color: #24324b;
   font-size: 1.2rem;
+}
+
+.staff-directory-heading .staff-permission-count {
+  margin: 0.25rem 0;
+  color: #3156b8;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .staff-directory-heading p {
@@ -3897,6 +4176,11 @@ body.dark-mode .dashboard-home-heading p {
   box-shadow: 0 8px 16px rgba(36, 118, 185, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32);
 }
 
+.staff-permission-menu-card .dashboard-menu-icon {
+  background: linear-gradient(145deg, #38b2ac, #16877f);
+  box-shadow: 0 8px 16px rgba(22, 135, 127, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
 .staff-manage-menu-card .dashboard-menu-icon {
   background: linear-gradient(145deg, #9a7bec, #6646bc);
   box-shadow: 0 8px 16px rgba(102, 70, 188, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32);
@@ -3906,6 +4190,60 @@ body.dark-mode .staff-dashboard-note {
   border-color: #3a4861;
   background: #202c42;
   color: #c1ccdc;
+}
+
+body.dark-mode .staff-dashboard-summary-heading h3,
+body.dark-mode .staff-summary-card strong {
+  color: #e8eef8;
+}
+
+body.dark-mode .staff-dashboard-summary-heading p,
+body.dark-mode .staff-summary-status,
+body.dark-mode .staff-summary-card span {
+  color: #b7c2d5;
+}
+
+body.dark-mode .staff-summary-card {
+  border-color: #3a4861;
+  background: #1b2639;
+}
+
+body.dark-mode .staff-summary-card.izin { --summary-color: #0dcaf0; }
+body.dark-mode .staff-summary-card.sakit { --summary-color: #7952b3; }
+body.dark-mode .staff-summary-card.terlambat { --summary-color: #d29b00; }
+body.dark-mode .staff-summary-card.alpa { --summary-color: #dc3545; }
+body.dark-mode .staff-summary-card.belum { --summary-color: #718096; }
+body.dark-mode .staff-summary-card.libur { --summary-color: #64748b; }
+
+body.dark-mode .staff-summary-card:hover {
+  box-shadow: 0 7px 18px rgba(0, 0, 0, 0.24);
+}
+
+body.dark-mode .staff-summary-card.is-selected {
+  border-color: var(--summary-color, #8299ed);
+}
+
+body.dark-mode .staff-summary-icon {
+  background: #303d63;
+}
+
+body.dark-mode .staff-summary-card.hadir strong { color: #86d6ac; }
+body.dark-mode .staff-summary-card.izin strong { color: #82d6e5; }
+body.dark-mode .staff-summary-card.sakit strong { color: #c0a9ff; }
+body.dark-mode .staff-summary-card.terlambat strong { color: #f0d48d; }
+body.dark-mode .staff-summary-card.alpa strong { color: #f2a0a5; }
+body.dark-mode .staff-summary-card.belum strong,
+body.dark-mode .staff-summary-card.libur strong { color: #b7c2d5; }
+
+body.dark-mode .staff-summary-track {
+  background: #34425b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .staff-summary-card,
+  .staff-summary-track > span {
+    transition: none;
+  }
 }
 
 body.dark-mode .staff-directory-panel {
@@ -3938,6 +4276,17 @@ body.dark-mode .staff-refresh-button:hover {
   background: #293852 !important;
 }
 
+body.dark-mode .staff-permission-filters input,
+body.dark-mode .staff-permission-filters select {
+  border-color: #42516a;
+  background-color: #202c42;
+  color: #e8eef8;
+}
+
+body.dark-mode .staff-permission-date-display {
+  color: #b7c2d5;
+}
+
 body.dark-mode .staff-event-form-actions .staff-event-cancel {
   background: #34425b !important;
   color: #e8eef8 !important;
@@ -3947,6 +4296,7 @@ body.dark-mode .staff-directory-heading h3,
 body.dark-mode .staff-directory-table th,
 body.dark-mode .staff-monitoring-class-controls h4,
 body.dark-mode .staff-monitoring-student-view h4,
+body.dark-mode .staff-permission-filters label,
 body.dark-mode .staff-monitoring-identity strong,
 body.dark-mode .staff-guru-identity strong {
   color: #e8eef8;
@@ -3966,6 +4316,7 @@ body.dark-mode .staff-directory-table tbody tr.is-admin .staff-guru-identity str
 
 body.dark-mode .staff-directory-heading p,
 body.dark-mode .staff-directory-status,
+body.dark-mode .staff-directory-heading .staff-permission-count,
 body.dark-mode .staff-monitoring-identity span,
 body.dark-mode .staff-guru-identity span {
   color: #b7c2d5;
@@ -4796,6 +5147,14 @@ body.dark-mode .student-qr-code {
 }
 
 @media (max-width: 640px) {
+  .staff-permission-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .staff-permission-filters label {
+    margin-bottom: -0.35rem;
+  }
+
   .dashboard-statistics.rpg-status-panel {
     padding: 0.9rem;
     border-radius: 18px;

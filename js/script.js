@@ -134,6 +134,10 @@ document.addEventListener("DOMContentLoaded", function () {
         toggleDarkMode();
         updateThemeLabel();
     });
+    document.getElementById("staff-summary-metrics").addEventListener("click", event => {
+        const card = event.target.closest("[data-summary-card]");
+        if (card) toggleStaffSummaryMetric(card);
+    });
 
     document.addEventListener("keydown", event => {
         const detailModal = document.getElementById("detail-modal");
@@ -463,6 +467,12 @@ function showDashboardHome() {
         cancelEarlyDismissalEdit();
         document.getElementById("staff-early-dismissal-status").classList.remove("is-error");
     }
+    const permissionPanel = document.getElementById("staff-permission-panel");
+    if (!permissionPanel.hidden) {
+        permissionPanel.hidden = true;
+        document.getElementById("staff-permission-content").replaceChildren();
+        document.getElementById("staff-permission-status").textContent = "";
+    }
     const isStudent = !currentUser || currentUser.role === "SISWA";
     document.getElementById("staff-menu-grid").hidden = isStudent;
     document.getElementById("staff-dashboard-note").hidden = isStudent;
@@ -479,6 +489,8 @@ function showDashboardHome() {
     if (currentUser && currentUser.role === "SISWA" && !dashboardStatsRequested) {
         dashboardStatsRequested = true;
         filterData();
+    } else if (currentUser && ["GURU", "ADMIN", "SUPERADMIN"].includes(String(currentUser.role || "").toUpperCase())) {
+        loadStaffAttendanceSummary();
     }
 }
 
@@ -498,15 +510,114 @@ function configureDashboardForRole(role) {
     document.getElementById("student-menu-grid").hidden = !isStudent;
     document.getElementById("staff-menu-grid").hidden = isStudent;
     document.getElementById("staff-dashboard-note").hidden = isStudent;
-    document.getElementById("staff-dashboard-note").textContent = role === "SUPERADMIN"
-        ? "Superadmin dapat mengelola akun guru/admin, event, hari libur, dan pulang cepat. Role superadmin dilindungi."
-        : isAdmin
-            ? "Admin dapat mengelola data guru, event, hari libur, dan memantau layanan sekolah."
-        : "Guru dapat memantau daftar siswa berdasarkan kelas.";
     document.getElementById("staff-manage-menu").hidden = !isAdmin;
     document.getElementById("staff-event-menu").hidden = !isAdmin;
     document.getElementById("staff-holiday-menu").hidden = !isAdmin;
+    document.getElementById("staff-permission-menu").hidden = isStudent;
     document.getElementById("staff-early-dismissal-menu").hidden = role !== "SUPERADMIN";
+}
+
+async function loadStaffAttendanceSummary(button = null) {
+    if (!currentUser || !["GURU", "ADMIN", "SUPERADMIN"].includes(String(currentUser.role || "").toUpperCase())) {
+        return;
+    }
+
+    const status = document.getElementById("staff-summary-status");
+    const date = document.getElementById("staff-summary-date");
+    const icon = button && button.querySelector("i");
+    if (button) {
+        button.disabled = true;
+        button.setAttribute("aria-busy", "true");
+        if (icon) icon.classList.add("fa-spin");
+    }
+    status.classList.remove("is-error");
+    status.textContent = "Memuat ringkasan absen hari ini...";
+    document.querySelectorAll("#staff-summary-metrics [data-summary]").forEach(item => {
+        item.textContent = "-";
+    });
+    document.querySelectorAll("#staff-summary-metrics [data-summary-percent]").forEach(item => {
+        item.textContent = "-";
+    });
+    document.querySelectorAll("#staff-summary-metrics [data-summary-bar]").forEach(item => {
+        item.style.width = "0%";
+    });
+
+    try {
+        if (!currentUser.sessionToken) {
+            throw new Error("Sesi login tidak valid. Silakan masuk kembali.");
+        }
+        const result = await apiCall("getTodayAttendanceSummary", "POST", {
+            sessionToken: currentUser.sessionToken
+        });
+        const metricNames = ["total", "hadir", "izin", "sakit", "terlambat", "alpa", "belumAbsen", "libur"];
+        if (!result || result.status !== "success" || !result.summary ||
+            metricNames.some(key => !Number.isFinite(Number(result.summary[key])) || Number(result.summary[key]) < 0)) {
+            throw new Error(result && result.message ? result.message : "Format ringkasan absensi tidak valid.");
+        }
+        metricNames.forEach(key => {
+            const value = Number(result.summary[key]);
+            animateStaffSummaryNumber(document.querySelector(`#staff-summary-metrics [data-summary="${key}"]`), value);
+            const percentage = key === "total"
+                ? (value > 0 ? 100 : 0)
+                : result.summary.total > 0
+                    ? Math.round((value / result.summary.total) * 100)
+                    : 0;
+            document.querySelector(`#staff-summary-metrics [data-summary-percent="${key}"]`).textContent =
+                `${percentage}%`;
+            document.querySelector(`#staff-summary-metrics [data-summary-bar="${key}"]`).style.width =
+                `${percentage}%`;
+        });
+        date.textContent = formatPermissionDate(result.tanggal) || "Hari ini";
+        status.textContent = "Klik kartu untuk menyorot kategori.";
+    } catch (error) {
+        date.textContent = "";
+        status.textContent = error.message || "Ringkasan absensi tidak dapat dimuat.";
+        status.classList.add("is-error");
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.removeAttribute("aria-busy");
+            if (icon) icon.classList.remove("fa-spin");
+        }
+    }
+}
+
+function animateStaffSummaryNumber(element, target) {
+    if (!element) return;
+    const start = Number(element.textContent) || 0;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        element.textContent = String(target);
+        return;
+    }
+
+    const duration = 450;
+    const startTime = performance.now();
+    const animate = currentTime => {
+        const progress = Math.min((currentTime - startTime) / duration, 1);
+        const easedProgress = 1 - Math.pow(1 - progress, 3);
+        element.textContent = String(Math.round(start + (target - start) * easedProgress));
+        if (progress < 1) window.requestAnimationFrame(animate);
+    };
+    window.requestAnimationFrame(animate);
+}
+
+function toggleStaffSummaryMetric(button) {
+    if (!button) return;
+    const wasSelected = button.getAttribute("aria-pressed") === "true";
+    document.querySelectorAll("#staff-summary-metrics [data-summary-card]").forEach(card => {
+        const selected = card === button && !wasSelected;
+        card.setAttribute("aria-pressed", String(selected));
+        card.classList.toggle("is-selected", selected);
+    });
+    const status = document.getElementById("staff-summary-status");
+    if (wasSelected) {
+        status.textContent = "Klik kartu untuk menyorot kategori.";
+        return;
+    }
+    const label = button.querySelector(".staff-summary-copy > span").textContent;
+    const value = button.querySelector("[data-summary]").textContent;
+    const percentage = button.querySelector("[data-summary-percent]").textContent;
+    status.textContent = `${label}: ${value} siswa (${percentage} dari total).`;
 }
 
 function updateDashboardGreeting() {
@@ -547,7 +658,7 @@ function showStaffFeature(feature) {
         showNotification("Menu ini hanya tersedia untuk akun admin atau guru.", "error");
         return;
     }
-    if (!["monitoring", "manage", "events", "holidays", "earlyDismissals"].includes(feature)) {
+    if (!["monitoring", "manage", "events", "holidays", "earlyDismissals", "permissions"].includes(feature)) {
         showNotification("Menu staf tidak dikenal.", "error");
         return;
     }
@@ -567,6 +678,10 @@ function showStaffFeature(feature) {
         showNotification("Menu pulang cepat hanya tersedia untuk superadmin.", "error");
         return;
     }
+    if (feature === "permissions" && !["GURU", "ADMIN", "SUPERADMIN"].includes(role)) {
+        showNotification("Data izin hanya tersedia untuk akun staf.", "error");
+        return;
+    }
 
     if (feature === "manage") {
         showGuruManagement();
@@ -582,6 +697,10 @@ function showStaffFeature(feature) {
     }
     if (feature === "earlyDismissals") {
         showEarlyDismissalManagement();
+        return;
+    }
+    if (feature === "permissions") {
+        showPermissionManagement();
         return;
     }
     showStaffMonitoring();
@@ -613,6 +732,8 @@ async function refreshStaffFeature(feature, button) {
             await loadHolidays();
         } else if (feature === "earlyDismissals") {
             await loadEarlyDismissals();
+        } else if (feature === "permissions") {
+            await loadPermissionData();
         } else {
             throw new Error("Menu staf tidak dikenal.");
         }
@@ -631,6 +752,7 @@ function showEventManagement() {
     document.getElementById("staff-monitoring-panel").hidden = true;
     document.getElementById("staff-holiday-panel").hidden = true;
     document.getElementById("staff-early-dismissal-panel").hidden = true;
+    document.getElementById("staff-permission-panel").hidden = true;
     document.getElementById("staff-event-panel").hidden = false;
     cancelEventEdit();
     loadEvents();
@@ -819,6 +941,7 @@ function showHolidayManagement() {
     document.getElementById("staff-monitoring-panel").hidden = true;
     document.getElementById("staff-event-panel").hidden = true;
     document.getElementById("staff-early-dismissal-panel").hidden = true;
+    document.getElementById("staff-permission-panel").hidden = true;
     document.getElementById("staff-holiday-panel").hidden = false;
     cancelHolidayEdit();
     loadHolidays();
@@ -1015,6 +1138,7 @@ function showEarlyDismissalManagement() {
     document.getElementById("staff-monitoring-panel").hidden = true;
     document.getElementById("staff-event-panel").hidden = true;
     document.getElementById("staff-holiday-panel").hidden = true;
+    document.getElementById("staff-permission-panel").hidden = true;
     document.getElementById("staff-early-dismissal-panel").hidden = false;
     cancelEarlyDismissalEdit();
     loadEarlyDismissals();
@@ -1211,6 +1335,9 @@ async function deleteEarlyDismissal(activity, button) {
 }
 
 function showStaffMonitoring() {
+    if (document.getElementById("staff-permission-panel")) {
+        document.getElementById("staff-permission-panel").hidden = true;
+    }
     selectedMonitoringClass = null;
     setDashboardMenuView(true);
     document.getElementById("staff-dashboard-note").hidden = true;
@@ -1268,6 +1395,7 @@ async function loadMonitoringClasses() {
                 classControls.hidden = true;
                 studentView.hidden = false;
                 document.getElementById("staff-monitoring-student-title").textContent = `Siswa Kelas ${className}`;
+                document.getElementById("staff-monitoring-description").textContent = "Memuat data wali kelas dan guru BK...";
                 loadMonitoringStudents(className);
             });
             item.appendChild(button);
@@ -1289,6 +1417,8 @@ function showMonitoringClasses() {
     const status = document.getElementById("staff-monitoring-status");
     status.textContent = "Pilih kelas untuk melihat daftar siswanya.";
     status.classList.remove("is-error");
+    document.getElementById("staff-monitoring-description").textContent =
+        "Pilih kelas untuk menampilkan daftar siswa yang terdaftar.";
     const firstClassButton = document.getElementById("staff-monitoring-class-list").querySelector("button");
     if (firstClassButton) firstClassButton.focus();
 }
@@ -1313,14 +1443,192 @@ async function loadMonitoringStudents(className) {
         if (!result || result.status !== "success" || !Array.isArray(result.students)) {
             throw new Error(result && result.message ? result.message : "Format daftar siswa tidak valid.");
         }
+        document.getElementById("staff-monitoring-description").textContent =
+            `Wali Kelas: ${result.waliKelas || "-"} · Guru BK: ${result.guruBk || "-"}`;
         renderMonitoringStudents(result.students);
         status.textContent = result.students.length
             ? `${result.students.length} siswa di kelas ${result.kelas || className}.`
             : `Belum ada siswa pada kelas ${result.kelas || className}.`;
     } catch (error) {
+        document.getElementById("staff-monitoring-description").textContent =
+            `Wali Kelas: - · Guru BK: -`;
         status.textContent = error.message;
         status.classList.add("is-error");
     }
+}
+
+function showPermissionManagement() {
+    if (!currentUser || !["GURU", "ADMIN", "SUPERADMIN"].includes(String(currentUser.role || "").toUpperCase())) {
+        showNotification("Data izin hanya tersedia untuk akun staf.", "error");
+        return;
+    }
+    setDashboardMenuView(true);
+    document.getElementById("staff-dashboard-note").hidden = true;
+    document.getElementById("staff-menu-grid").hidden = true;
+    document.getElementById("staff-directory-panel").hidden = true;
+    document.getElementById("staff-monitoring-panel").hidden = true;
+    document.getElementById("staff-event-panel").hidden = true;
+    document.getElementById("staff-holiday-panel").hidden = true;
+    document.getElementById("staff-early-dismissal-panel").hidden = true;
+    document.getElementById("staff-permission-panel").hidden = false;
+    const dateInput = document.getElementById("staff-permission-date");
+    if (!dateInput.value) {
+        const today = new Date();
+        dateInput.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    }
+    loadPermissionData();
+}
+
+async function loadPermissionData() {
+    if (!currentUser || !["GURU", "ADMIN", "SUPERADMIN"].includes(String(currentUser.role || "").toUpperCase())) {
+        showNotification("Data izin hanya tersedia untuk akun staf.", "error");
+        return;
+    }
+    if (!currentUser.sessionToken) {
+        showNotification("Sesi login tidak valid. Silakan masuk kembali.", "error");
+        return;
+    }
+
+    const status = document.getElementById("staff-permission-status");
+    const container = document.getElementById("staff-permission-content");
+    const classSelect = document.getElementById("staff-permission-class");
+    const count = document.getElementById("staff-permission-count");
+    const dateFilter = document.getElementById("staff-permission-date").value;
+    document.getElementById("staff-permission-date-display").textContent =
+        formatPermissionDate(dateFilter) || "Semua tanggal";
+    const selectedClass = classSelect.value;
+    status.textContent = "Memuat data izin...";
+    status.classList.remove("is-error");
+    count.textContent = "Jumlah siswa izin: menghitung...";
+    container.replaceChildren();
+
+    try {
+        const result = await apiCall("getPermissionData", "POST", {
+            sessionToken: currentUser.sessionToken,
+            tanggal: document.getElementById("staff-permission-date").value,
+            kelas: selectedClass
+        });
+        if (!result || result.status !== "success" ||
+            !Array.isArray(result.records) || !Array.isArray(result.classes)) {
+            throw new Error(result && result.message ? result.message : "Format data izin tidak valid.");
+        }
+
+        classSelect.replaceChildren();
+        const allClassesOption = document.createElement("option");
+        allClassesOption.value = "";
+        allClassesOption.textContent = "Semua kelas";
+        classSelect.appendChild(allClassesOption);
+        result.classes.forEach(className => {
+            const option = document.createElement("option");
+            option.value = className;
+            option.textContent = className;
+            classSelect.appendChild(option);
+        });
+        if (result.classes.includes(selectedClass)) classSelect.value = selectedClass;
+
+        renderPermissionData(result.records);
+        count.textContent = `Jumlah siswa izin: ${countUniquePermissionStudents(result.records)} siswa`;
+        const filterDescription = dateFilter
+            ? `tanggal ${dateFilter.split("-").reverse().join("-")}`
+            : "semua tanggal";
+        status.textContent = `${result.records.length} data izin untuk ${filterDescription}${classSelect.value ? `, kelas ${classSelect.value}` : ""}.`;
+    } catch (error) {
+        count.textContent = "Jumlah siswa izin: -";
+        status.textContent = error.message;
+        status.classList.add("is-error");
+    }
+}
+
+function countUniquePermissionStudents(records) {
+    const studentKeys = new Set();
+    records.forEach(record => {
+        const nis = String(record.nis || "").trim();
+        if (nis) {
+            studentKeys.add(`nis:${nis}`);
+            return;
+        }
+        const name = String(record.nama || "").trim().toUpperCase();
+        const kelas = String(record.kelas || "").trim().toUpperCase();
+        if (name) studentKeys.add(`nama:${kelas}:${name}`);
+    });
+    return studentKeys.size;
+}
+
+function formatPermissionDate(value) {
+    const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return "";
+    const [, year, month, day] = match;
+    const date = new Date(Number(year), Number(month) - 1, Number(day));
+    if (date.getFullYear() !== Number(year) ||
+        date.getMonth() !== Number(month) - 1 ||
+        date.getDate() !== Number(day)) {
+        return "";
+    }
+    const formatted = new Intl.DateTimeFormat("id-ID", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric"
+    }).format(date);
+    return formatted.charAt(0).toLocaleUpperCase("id-ID") + formatted.slice(1);
+}
+
+function renderPermissionData(records) {
+    const container = document.getElementById("staff-permission-content");
+    container.replaceChildren();
+    if (!records.length) {
+        container.textContent = "Tidak ada data izin untuk filter yang dipilih.";
+        return;
+    }
+
+    const table = document.createElement("table");
+    table.className = "staff-directory-table staff-permission-table";
+    const head = table.createTHead().insertRow();
+    ["Kelas", "Nama Siswa", "Keterangan"].forEach(label => {
+        const cell = document.createElement("th");
+        cell.scope = "col";
+        cell.textContent = label;
+        head.appendChild(cell);
+    });
+    const body = table.createTBody();
+    records.forEach(record => {
+        const row = body.insertRow();
+        row.insertCell().textContent = record.kelas || "-";
+
+        const identity = row.insertCell();
+        identity.className = "staff-monitoring-identity";
+        const name = document.createElement("strong");
+        name.textContent = record.nama || "-";
+        const nis = document.createElement("span");
+        nis.textContent = record.nis || "-";
+        identity.append(name, nis);
+
+        const statusCell = row.insertCell();
+        const status = document.createElement("span");
+        const description = String(record.keterangan || "").trim();
+        const shortCode = getPermissionShortCode(description);
+        status.className = "staff-monitoring-attendance-status";
+        status.textContent = shortCode;
+        if (description) status.title = description;
+        status.setAttribute("aria-label", description ? `${description} (${shortCode})` : "-");
+        statusCell.appendChild(status);
+    });
+    container.appendChild(table);
+}
+
+function getPermissionShortCode(value) {
+    const text = String(value || "").trim().toUpperCase();
+    if (!text) return "-";
+    if (text.includes("SAKIT")) return "S";
+    if (text === "S") return "S";
+    if (text.includes("IZIN")) return "I";
+    if (text === "I") return "I";
+    if (/^[A-Z0-9]{1,4}$/.test(text)) return text;
+    const initials = (text.match(/[A-Z0-9]+/g) || [])
+        .map(word => word[0])
+        .join("")
+        .slice(0, 4);
+    return initials || "-";
 }
 
 function renderMonitoringStudents(students) {
@@ -1357,7 +1665,12 @@ function renderMonitoringStudents(students) {
         const statusCell = row.insertCell();
         const status = document.createElement("span");
         status.className = "staff-monitoring-attendance-status";
-        status.textContent = getStatusDescription(student.keterangan);
+        const description = getStatusDescription(student.keterangan);
+        status.textContent = getAttendanceShortCode(student.keterangan);
+        status.title = description;
+        status.setAttribute("aria-label", `${description} (${status.textContent})`);
+        const statusClass = getStatusClass(student.keterangan);
+        if (statusClass) status.classList.add(statusClass);
         statusCell.appendChild(status);
     });
     container.appendChild(table);
@@ -1372,6 +1685,7 @@ function showGuruManagement() {
     document.getElementById("staff-holiday-panel").hidden = true;
     document.getElementById("staff-early-dismissal-panel").hidden = true;
     document.getElementById("staff-monitoring-panel").hidden = true;
+    document.getElementById("staff-permission-panel").hidden = true;
     loadGuruDirectory();
 }
 
@@ -2282,6 +2596,33 @@ function getStatusDescription(status) {
     };
     const code = String(status || "").trim().toUpperCase();
     return descriptions[code] || status || "-";
+}
+
+function getAttendanceShortCode(status) {
+    const code = String(status || "").trim().toUpperCase();
+    if (!code) return "-";
+    const abbreviations = {
+        HADIR: "H",
+        ALPA: "A",
+        ALPHA: "A",
+        ABSEN: "A",
+        IZIN: "I",
+        SAKIT: "S",
+        TERLAMBAT: "T",
+        "BELUM ABSEN": "BA",
+        PULANG: "P",
+        LIBUR: "OFF",
+        "HARI BESAR": "HB",
+        "TIDAK ABSEN PULANG": "TAP",
+        "TIDAK ABSEN MASUK": "TAM",
+        "TIDAK ABSEN PULANG & TERLAMBAT": "TAPT",
+        "PULANG & TERLAMBAT": "PT"
+    };
+    if (Object.prototype.hasOwnProperty.call(abbreviations, code)) return abbreviations[code];
+    if (["H", "A", "I", "S", "T", "TAP", "TAM", "TAPT", "P", "PT", "HB", "OFF"].includes(code)) {
+        return code;
+    }
+    return /^[A-Z0-9_-]{1,6}$/.test(code) ? code : "?";
 }
 
 function showDetails(dayData) {

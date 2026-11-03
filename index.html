@@ -204,11 +204,77 @@
             <span class="dashboard-menu-label">Keluar</span>
           </button>
         </div>
-        <p id="staff-dashboard-note" class="staff-dashboard-note" hidden></p>
+        <section id="staff-dashboard-note" class="staff-dashboard-note" aria-labelledby="staff-summary-title" hidden>
+          <div class="staff-dashboard-summary-heading">
+            <div>
+              <span class="dashboard-eyebrow">Ringkasan kehadiran</span>
+              <h3 id="staff-summary-title">Absen Hari Ini</h3>
+              <p id="staff-summary-date"></p>
+            </div>
+            <button type="button" class="staff-refresh-button" aria-label="Muat ulang ringkasan absen hari ini" title="Muat ulang ringkasan" onclick="loadStaffAttendanceSummary(this)">
+              <i class="fas fa-rotate" aria-hidden="true"></i>
+            </button>
+          </div>
+          <p id="staff-summary-status" class="staff-summary-status" role="status" aria-live="polite">Klik kartu untuk menyorot kategori.</p>
+          <div id="staff-summary-metrics" class="staff-summary-metrics">
+            <button type="button" class="staff-summary-card total" data-summary-card="total" aria-pressed="false">
+              <span class="staff-summary-icon"><i class="fas fa-users" aria-hidden="true"></i></span>
+              <span class="staff-summary-copy"><span>Total Siswa</span><small data-summary-percent="total">100%</small></span>
+              <strong data-summary="total">-</strong>
+              <span class="staff-summary-track" aria-hidden="true"><span data-summary-bar="total"></span></span>
+            </button>
+            <button type="button" class="staff-summary-card hadir" data-summary-card="hadir" aria-pressed="false">
+              <span class="staff-summary-icon"><i class="fas fa-circle-check" aria-hidden="true"></i></span>
+              <span class="staff-summary-copy"><span>Hadir</span><small data-summary-percent="hadir">-</small></span>
+              <strong data-summary="hadir">-</strong>
+              <span class="staff-summary-track" aria-hidden="true"><span data-summary-bar="hadir"></span></span>
+            </button>
+            <button type="button" class="staff-summary-card izin" data-summary-card="izin" aria-pressed="false">
+              <span class="staff-summary-icon"><i class="fas fa-envelope-open-text" aria-hidden="true"></i></span>
+              <span class="staff-summary-copy"><span>Izin</span><small data-summary-percent="izin">-</small></span>
+              <strong data-summary="izin">-</strong>
+              <span class="staff-summary-track" aria-hidden="true"><span data-summary-bar="izin"></span></span>
+            </button>
+            <button type="button" class="staff-summary-card sakit" data-summary-card="sakit" aria-pressed="false">
+              <span class="staff-summary-icon"><i class="fas fa-heart-pulse" aria-hidden="true"></i></span>
+              <span class="staff-summary-copy"><span>Sakit</span><small data-summary-percent="sakit">-</small></span>
+              <strong data-summary="sakit">-</strong>
+              <span class="staff-summary-track" aria-hidden="true"><span data-summary-bar="sakit"></span></span>
+            </button>
+            <button type="button" class="staff-summary-card terlambat" data-summary-card="terlambat" aria-pressed="false">
+              <span class="staff-summary-icon"><i class="fas fa-clock" aria-hidden="true"></i></span>
+              <span class="staff-summary-copy"><span>Terlambat</span><small data-summary-percent="terlambat">-</small></span>
+              <strong data-summary="terlambat">-</strong>
+              <span class="staff-summary-track" aria-hidden="true"><span data-summary-bar="terlambat"></span></span>
+            </button>
+            <button type="button" class="staff-summary-card alpa" data-summary-card="alpa" aria-pressed="false">
+              <span class="staff-summary-icon"><i class="fas fa-circle-xmark" aria-hidden="true"></i></span>
+              <span class="staff-summary-copy"><span>Alpa</span><small data-summary-percent="alpa">-</small></span>
+              <strong data-summary="alpa">-</strong>
+              <span class="staff-summary-track" aria-hidden="true"><span data-summary-bar="alpa"></span></span>
+            </button>
+            <button type="button" class="staff-summary-card belum" data-summary-card="belumAbsen" aria-pressed="false">
+              <span class="staff-summary-icon"><i class="fas fa-hourglass-half" aria-hidden="true"></i></span>
+              <span class="staff-summary-copy"><span>Belum Absen</span><small data-summary-percent="belumAbsen">-</small></span>
+              <strong data-summary="belumAbsen">-</strong>
+              <span class="staff-summary-track" aria-hidden="true"><span data-summary-bar="belumAbsen"></span></span>
+            </button>
+            <button type="button" class="staff-summary-card libur" data-summary-card="libur" aria-pressed="false">
+              <span class="staff-summary-icon"><i class="fas fa-calendar-day" aria-hidden="true"></i></span>
+              <span class="staff-summary-copy"><span>Libur / HB</span><small data-summary-percent="libur">-</small></span>
+              <strong data-summary="libur">-</strong>
+              <span class="staff-summary-track" aria-hidden="true"><span data-summary-bar="libur"></span></span>
+            </button>
+          </div>
+        </section>
         <div id="staff-menu-grid" class="dashboard-menu-grid staff-menu-grid" role="group" aria-label="Menu admin dan guru" hidden>
           <button type="button" class="dashboard-menu-card staff-monitor-menu-card" onclick="showStaffFeature('monitoring')">
             <span class="dashboard-menu-icon"><i class="fas fa-clipboard-list" aria-hidden="true"></i></span>
             <span class="dashboard-menu-label">Pantau Absensi</span>
+          </button>
+          <button id="staff-permission-menu" type="button" class="dashboard-menu-card staff-permission-menu-card" onclick="showStaffFeature('permissions')" hidden>
+            <span class="dashboard-menu-icon"><i class="fas fa-notes-medical" aria-hidden="true"></i></span>
+            <span class="dashboard-menu-label">Data Izin</span>
           </button>
           <button id="staff-manage-menu" type="button" class="dashboard-menu-card staff-manage-menu-card" onclick="showStaffFeature('manage')" hidden>
             <span class="dashboard-menu-icon"><i class="fas fa-users-cog" aria-hidden="true"></i></span>
@@ -346,7 +412,7 @@
             <div>
               <span class="dashboard-eyebrow">Pemantauan kehadiran</span>
               <h3 id="staff-monitoring-title">Pilih Kelas</h3>
-              <p>Pilih kelas untuk menampilkan daftar siswa yang terdaftar.</p>
+              <p id="staff-monitoring-description">Pilih kelas untuk menampilkan daftar siswa yang terdaftar.</p>
             </div>
             <button type="button" class="staff-refresh-button" aria-label="Muat ulang pemantauan absensi" title="Muat ulang pemantauan absensi" onclick="refreshStaffFeature('monitoring', this)">
               <i class="fas fa-rotate" aria-hidden="true"></i>
@@ -364,6 +430,32 @@
             <div id="staff-monitoring-students" class="staff-directory-content"></div>
           </div>
           <p id="staff-monitoring-status" class="staff-directory-status" role="status" aria-live="polite"></p>
+        </section>
+        <section id="staff-permission-panel" class="staff-directory-panel" aria-labelledby="staff-permission-title" hidden>
+          <div class="staff-directory-heading">
+            <div>
+              <span class="dashboard-eyebrow">Data layanan siswa</span>
+              <h3 id="staff-permission-title">Daftar Siswa Izin</h3>
+              <p id="staff-permission-count" class="staff-permission-count" role="status" aria-live="polite">Jumlah siswa izin: -</p>
+            </div>
+            <button type="button" class="staff-refresh-button" aria-label="Muat ulang data izin" title="Muat ulang data izin" onclick="refreshStaffFeature('permissions', this)">
+              <i class="fas fa-rotate" aria-hidden="true"></i>
+            </button>
+          </div>
+          <form id="staff-permission-filters" class="staff-permission-filters" onsubmit="event.preventDefault(); loadPermissionData();">
+            <label for="staff-permission-date">Tanggal</label>
+            <input id="staff-permission-date" type="date">
+            <label for="staff-permission-class">Kelas</label>
+            <select id="staff-permission-class">
+              <option value="">Semua kelas</option>
+            </select>
+            <div class="staff-permission-submit">
+              <button type="submit"><i class="fas fa-filter" aria-hidden="true"></i><span>Terapkan</span></button>
+              <span id="staff-permission-date-display" class="staff-permission-date-display" aria-live="polite"></span>
+            </div>
+          </form>
+          <p id="staff-permission-status" class="staff-directory-status" role="status" aria-live="polite"></p>
+          <div id="staff-permission-content" class="staff-directory-content"></div>
         </section>
       </section>
 
