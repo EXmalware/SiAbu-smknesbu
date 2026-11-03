@@ -1629,13 +1629,6 @@ body.dark-mode .nav-dropdown button:hover {
     position: relative;
   }
 
-  #userInfo {
-    display: block;
-    width: auto;
-    margin: 0;
-    overflow-wrap: anywhere;
-  }
-
   .filter-container {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr) 44px 44px;
@@ -2691,7 +2684,12 @@ body.dark-mode .login-help {
   background: linear-gradient(110deg, #f8fafc, #eff6ff);
 }
 
+.dashboard-topbar:not(.menu-view) {
+  display: none;
+}
+
 .dashboard-topbar.menu-view {
+  display: flex;
   justify-content: flex-start;
   margin-bottom: 0.75rem;
   padding: 0;
@@ -2699,7 +2697,6 @@ body.dark-mode .login-help {
   background: transparent;
 }
 
-.dashboard-topbar.menu-view .dashboard-greeting,
 .dashboard-home.menu-view > .dashboard-home-heading {
   display: none;
 }
@@ -2755,13 +2752,6 @@ body.dark-mode .dashboard-topbar.menu-view {
 body.dark-mode .dashboard-greeting > span,
 body.dark-mode .dashboard-eyebrow {
   color: #93c5fd;
-}
-
-#userInfo {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-  overflow-wrap: anywhere;
 }
 
 .dashboard-user-details {
@@ -3001,10 +2991,6 @@ body.dark-mode .legend-container {
     margin-bottom: 1.1rem;
     padding: 0.8rem;
     border-radius: 14px;
-  }
-
-  #userInfo {
-    font-size: 1rem;
   }
 
   .dashboard-section-heading {
@@ -3415,22 +3401,36 @@ body.dark-mode .attendance-state-copy p {
 .dashboard-home-heading h2 {
   margin: 0 0 0.35rem;
   color: #17233c;
-  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-size: clamp(1.35rem, 2.7vw, 1.8rem);
   letter-spacing: -0.04em;
+}
+
+.dashboard-home-heading .dashboard-home-user-name {
+  margin: 0 0 0.4rem;
+  color: #34425b;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .dashboard-home-heading h2:focus {
   outline: none;
 }
 
-.dashboard-home-heading p {
+.dashboard-home-heading > p:not(.dashboard-home-user-name) {
   margin: 0;
   color: #68758d;
-  font-size: 0.92rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 
 body.dark-mode .dashboard-home-heading h2 {
   color: #f1f5fb;
+}
+
+body.dark-mode .dashboard-home-heading .dashboard-home-user-name {
+  color: #e0e8f5;
 }
 
 body.dark-mode .dashboard-home-heading {
@@ -3494,7 +3494,7 @@ body.dark-mode .dashboard-home-heading[data-time-period="night"]::after {
     radial-gradient(circle at 78% 38%, #d8d8ff 0 19%, transparent 20%);
 }
 
-body.dark-mode .dashboard-home-heading p {
+body.dark-mode .dashboard-home-heading > p:not(.dashboard-home-user-name) {
   color: #b7c2d5;
 }
 
@@ -3562,9 +3562,70 @@ body.dark-mode .dashboard-home-heading p {
 }
 
 .staff-summary-metrics {
+  display: flex;
+  width: 100%;
+  transition: transform 0.45s cubic-bezier(0.22, 0.68, 0, 1);
+  will-change: transform;
+}
+
+.staff-summary-viewport {
+  min-width: 0;
+  overflow: hidden;
+  touch-action: pan-y;
+  border-radius: 10px;
+}
+
+.staff-summary-card {
+  flex: 0 0 100%;
+  width: 100%;
+}
+
+.staff-summary-carousel {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.staff-summary-indicators {
+  display: flex;
+  grid-column: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 24px;
+}
+
+.staff-summary-indicator {
+  display: block;
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  min-height: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #aab6c8 !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  transition: width 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.staff-summary-indicator:hover {
+  transform: scale(1.2);
+  box-shadow: none;
+}
+
+.staff-summary-indicator.is-active {
+  flex-basis: 22px;
+  width: 22px;
+  background: #3156d3 !important;
+}
+
+.staff-summary-indicator:focus-visible {
+  outline: 3px solid rgba(49, 86, 211, 0.35);
+  outline-offset: 3px;
 }
 
 .staff-summary-card {
@@ -4350,11 +4411,22 @@ body.dark-mode .staff-summary-track {
   background: #34425b;
 }
 
+body.dark-mode .staff-summary-indicator {
+  background: #64748b !important;
+}
+
+body.dark-mode .staff-summary-indicator.is-active {
+  background: #8ca5ff !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .staff-summary-card,
-  .staff-summary-track > span {
+  .staff-summary-track > span,
+  .staff-summary-metrics {
     transition: none;
   }
+
+  .staff-summary-indicator { transition: none; }
 }
 
 body.dark-mode .staff-directory-panel {

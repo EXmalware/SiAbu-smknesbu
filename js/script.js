@@ -10,6 +10,10 @@ let selectedMonitoringClass = null;
 let pullToRefreshStart = null;
 let pullToRefreshDistance = 0;
 let pullToRefreshRunning = false;
+let staffSummaryCarouselIndex = 0;
+let staffSummaryCarouselTimer = null;
+let staffSummaryCarouselPointer = null;
+let suppressStaffSummaryCardClick = false;
 let ktdsLoaded = false;
 let currentKtdsValues = {};
 const KTDS_FIELDS = [
@@ -107,9 +111,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const savedUser = localStorage.getItem('currentUser');
     const rememberedUsername = localStorage.getItem("rememberedUsername");
+    const rememberMeCheckbox = document.getElementById("rememberMe");
     if (rememberedUsername) {
         document.getElementById("username").value = rememberedUsername;
-        document.getElementById("rememberMe").checked = true;
+        if (rememberMeCheckbox) rememberMeCheckbox.checked = true;
     }
     if (savedUser) {
         currentUser = JSON.parse(savedUser);
@@ -117,7 +122,6 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("loginForm").style.display = "none";
         document.getElementById("userPanel").style.display = "block";
         configureDashboardForRole(currentUser.role);
-        renderDashboardUserInfo(currentUser, currentUser.role === "SISWA" && !currentUser.kelas ? "Memuat kelas..." : "");
         document.querySelector(".main-container").classList.add("dashboard-mode");
 
         showDashboardHome();
@@ -142,13 +146,19 @@ document.addEventListener("DOMContentLoaded", function () {
         toggleDarkMode();
         updateThemeLabel();
     });
-    document.getElementById("staff-summary-metrics").addEventListener("click", event => {
-        const card = event.target.closest("[data-summary-card]");
-        if (card) toggleStaffSummaryMetric(card);
-    });
-    document.getElementById("rememberMe").addEventListener("change", event => {
-        if (!event.target.checked) localStorage.removeItem("rememberedUsername");
-    });
+    const summaryMetrics = document.getElementById("staff-summary-metrics");
+    if (summaryMetrics) {
+        summaryMetrics.addEventListener("click", event => {
+            const card = event.target.closest("[data-summary-card]");
+            if (card) toggleStaffSummaryMetric(card);
+        });
+    }
+    setupStaffSummaryCarousel();
+    if (rememberMeCheckbox) {
+        rememberMeCheckbox.addEventListener("change", event => {
+            if (!event.target.checked) localStorage.removeItem("rememberedUsername");
+        });
+    }
     setupPullToRefresh();
 
     document.addEventListener("keydown", event => {
@@ -261,6 +271,118 @@ function setupPullToRefresh() {
         indicator.style.removeProperty("--pull-distance");
         indicator.hidden = true;
     }, { passive: true });
+}
+
+function setupStaffSummaryCarousel() {
+    const viewport = document.getElementById("staff-summary-viewport");
+    const carousel = document.getElementById("staff-summary-carousel");
+    const track = document.getElementById("staff-summary-metrics");
+    if (!viewport || !carousel || !track) return;
+
+    const cards = Array.from(track.querySelectorAll("[data-summary-card]"));
+    if (!cards.length) return;
+    const indicators = Array.from(document.querySelectorAll("[data-summary-indicator]"));
+
+    indicators.forEach(indicator => {
+        indicator.addEventListener("click", () => {
+            showStaffSummarySlide(Number(indicator.dataset.summaryIndicator));
+        });
+    });
+    viewport.addEventListener("keydown", event => {
+        if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+            event.preventDefault();
+            showStaffSummarySlide(staffSummaryCarouselIndex + (event.key === "ArrowRight" ? 1 : -1));
+        }
+    });
+    viewport.addEventListener("pointerdown", event => {
+        if (!event.isPrimary || event.button !== 0) return;
+        staffSummaryCarouselPointer = {
+            id: event.pointerId,
+            x: event.clientX,
+            y: event.clientY
+        };
+        pauseStaffSummaryCarouselTimer();
+        if (event.pointerType === "touch") viewport.setPointerCapture(event.pointerId);
+    });
+    viewport.addEventListener("pointerup", event => {
+        if (!staffSummaryCarouselPointer || staffSummaryCarouselPointer.id !== event.pointerId) return;
+        const deltaX = event.clientX - staffSummaryCarouselPointer.x;
+        const deltaY = event.clientY - staffSummaryCarouselPointer.y;
+        staffSummaryCarouselPointer = null;
+        if (Math.abs(deltaX) < 40 || Math.abs(deltaX) <= Math.abs(deltaY)) {
+            startStaffSummaryCarouselTimer();
+            return;
+        }
+        suppressStaffSummaryCardClick = true;
+        window.setTimeout(() => {
+            suppressStaffSummaryCardClick = false;
+        }, 0);
+        showStaffSummarySlide(staffSummaryCarouselIndex + (deltaX < 0 ? 1 : -1));
+    });
+    viewport.addEventListener("pointercancel", () => {
+        staffSummaryCarouselPointer = null;
+        startStaffSummaryCarouselTimer();
+    });
+    viewport.addEventListener("click", event => {
+        if (!suppressStaffSummaryCardClick) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        suppressStaffSummaryCardClick = false;
+    }, true);
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) pauseStaffSummaryCarouselTimer();
+        else startStaffSummaryCarouselTimer();
+    });
+
+    showStaffSummarySlide(0, false);
+    startStaffSummaryCarouselTimer();
+}
+
+function showStaffSummarySlide(index, resetTimer = true) {
+    const track = document.getElementById("staff-summary-metrics");
+    const cards = Array.from(track.querySelectorAll("[data-summary-card]"));
+    if (!cards.length) return;
+
+    staffSummaryCarouselIndex = (index + cards.length) % cards.length;
+    track.style.transform = `translateX(-${staffSummaryCarouselIndex * 100}%)`;
+    cards.forEach((card, cardIndex) => {
+        const inactive = cardIndex !== staffSummaryCarouselIndex;
+        card.setAttribute("aria-hidden", String(inactive));
+        card.inert = inactive;
+    });
+    document.querySelectorAll("[data-summary-indicator]").forEach((indicator, indicatorIndex) => {
+        const active = indicatorIndex === staffSummaryCarouselIndex;
+        indicator.classList.toggle("is-active", active);
+        if (active) indicator.setAttribute("aria-current", "true");
+        else indicator.removeAttribute("aria-current");
+    });
+    if (resetTimer) startStaffSummaryCarouselTimer();
+}
+
+function startStaffSummaryCarouselTimer() {
+    pauseStaffSummaryCarouselTimer();
+    const carousel = document.getElementById("staff-summary-carousel");
+    if (!carousel || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    staffSummaryCarouselTimer = window.setTimeout(() => {
+        staffSummaryCarouselTimer = null;
+        const summaryPanel = document.getElementById("staff-dashboard-note");
+        const dashboardHome = document.getElementById("dashboardHome");
+        if (document.hidden || !summaryPanel || summaryPanel.hidden ||
+            !dashboardHome || dashboardHome.style.display === "none") {
+            startStaffSummaryCarouselTimer();
+            return;
+        }
+        showStaffSummarySlide(staffSummaryCarouselIndex + 1, false);
+        startStaffSummaryCarouselTimer();
+    }, 5000);
+}
+
+function pauseStaffSummaryCarouselTimer() {
+    if (staffSummaryCarouselTimer !== null) {
+        window.clearTimeout(staffSummaryCarouselTimer);
+        staffSummaryCarouselTimer = null;
+    }
 }
 
 function registerServiceWorker() {
@@ -410,7 +532,8 @@ async function login() {
                 throw new Error("Role akun tidak valid.");
             }
             localStorage.setItem('currentUser', JSON.stringify(res));
-            if (document.getElementById("rememberMe").checked) {
+            const rememberMeCheckbox = document.getElementById("rememberMe");
+            if (rememberMeCheckbox && rememberMeCheckbox.checked) {
                 localStorage.setItem("rememberedUsername", username);
             } else {
                 localStorage.removeItem("rememberedUsername");
@@ -421,7 +544,6 @@ async function login() {
             document.getElementById("loginForm").style.display = "none";
             document.getElementById("userPanel").style.display = "block";
             configureDashboardForRole(res.role);
-            renderDashboardUserInfo(res, res.role === "SISWA" && !res.kelas ? "Memuat kelas..." : "");
             document.querySelector(".main-container").classList.add("dashboard-mode");
             setTimeout(() => {
                 document.getElementById("userPanel").classList.add("fade-in");
@@ -724,17 +846,10 @@ function updateDashboardGreeting() {
         timePeriod = "night";
     }
 
+    const userName = currentUser && currentUser.nama ? currentUser.nama : "siswa";
     document.getElementById("dashboard-home-title").textContent = greeting;
+    document.getElementById("dashboard-home-user-name").textContent = userName;
     document.querySelector(".dashboard-home-heading").dataset.timePeriod = timePeriod;
-}
-
-function renderDashboardUserInfo(user, classPlaceholder = "Kelas tidak tersedia") {
-    document.getElementById("userInfo").textContent = `Halo, ${user.nama || "siswa"}`;
-    const classElement = document.getElementById("userClass");
-    const role = String(user.role || "SISWA").toUpperCase();
-    const className = role === "SISWA" ? String(user.kelas || "").trim() : role;
-    classElement.textContent = className || classPlaceholder;
-    classElement.hidden = false;
 }
 
 function showStaffFeature(feature) {
@@ -1899,9 +2014,6 @@ async function updateGuruRole(targetNip, role, button) {
 
 async function loadDashboardUserClass() {
     if (!currentUser || currentUser.role !== "SISWA" || !currentUser.nis) {
-        const classElement = document.getElementById("userClass");
-        classElement.textContent = "Kelas tidak tersedia";
-        classElement.hidden = false;
         return;
     }
 
@@ -1913,11 +2025,7 @@ async function loadDashboardUserClass() {
 
         currentUser.kelas = profile.kelas || "";
         localStorage.setItem("currentUser", JSON.stringify(currentUser));
-        renderDashboardUserInfo(currentUser);
     } catch (error) {
-        const classElement = document.getElementById("userClass");
-        classElement.textContent = "Kelas tidak tersedia";
-        classElement.hidden = false;
         console.error("Gagal memuat kelas siswa:", error);
         showNotification("Kelas siswa gagal dimuat: " + error.message, "error");
     }
