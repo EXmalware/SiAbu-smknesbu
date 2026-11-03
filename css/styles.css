@@ -3597,6 +3597,38 @@ body.dark-mode .dashboard-home-heading p {
 .staff-summary-card.belum strong { color: #52617a; }
 .staff-summary-card.libur strong { color: #718096; }
 
+body.light-mode .staff-summary-card {
+  border-color: #cbd5e1;
+  background: #fff;
+  color: #1e293b;
+}
+
+body.light-mode .staff-summary-card.total { --summary-color: #2548b8; }
+body.light-mode .staff-summary-card.hadir { --summary-color: #146c43; }
+body.light-mode .staff-summary-card.izin { --summary-color: #08677a; }
+body.light-mode .staff-summary-card.sakit { --summary-color: #59359a; }
+body.light-mode .staff-summary-card.terlambat { --summary-color: #754d00; }
+body.light-mode .staff-summary-card.alpa { --summary-color: #a52231; }
+body.light-mode .staff-summary-card.belum,
+body.light-mode .staff-summary-card.libur { --summary-color: #475569; }
+
+body.light-mode .staff-summary-copy > span,
+body.light-mode .staff-summary-card strong {
+  color: #1e293b;
+}
+
+body.light-mode .staff-summary-copy small {
+  color: #475569;
+}
+
+body.light-mode .staff-summary-card.hadir strong { color: #14532d; }
+body.light-mode .staff-summary-card.izin strong { color: #07566a; }
+body.light-mode .staff-summary-card.sakit strong { color: #4c2889; }
+body.light-mode .staff-summary-card.terlambat strong { color: #664200; }
+body.light-mode .staff-summary-card.alpa strong { color: #991b2b; }
+body.light-mode .staff-summary-card.belum strong,
+body.light-mode .staff-summary-card.libur strong { color: #334155; }
+
 .staff-directory-panel[hidden] {
   display: none !important;
 }

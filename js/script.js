@@ -189,7 +189,9 @@ document.addEventListener("DOMContentLoaded", function () {
 function registerServiceWorker() {
     if (!window.isSecureContext || !("serviceWorker" in navigator)) return;
 
-    navigator.serviceWorker.register("./sw.js").catch(error => {
+    navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" })
+        .then(registration => registration.update())
+        .catch(error => {
         console.error("Service worker registration failed:", error);
     });
 }
