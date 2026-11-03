@@ -57,11 +57,12 @@ Project Absensi Siswa SiAbu/
 
 ### Progressive Web App (PWA)
 
-Frontend menyertakan `manifest.webmanifest`, ikon aplikasi, dan service worker. Setelah frontend dipublikasikan melalui HTTPS (misalnya GitHub Pages), browser yang kompatibel dapat menawarkan opsi instalasi. Service worker memeriksa pembaruan aset app shell saat aplikasi dibuka dan memakai cache hanya jika jaringan tidak tersedia. App shell yang sudah tersimpan dapat dibuka saat offline, tetapi login dan pemuatan data tetap memerlukan koneksi internet. Service worker hanya menyimpan aset frontend; respons API dan data siswa tidak disimpan di cache.
+Frontend menyertakan `manifest.webmanifest`, ikon aplikasi, dan service worker. Setelah frontend dipublikasikan melalui HTTPS (misalnya GitHub Pages), browser yang kompatibel dapat menawarkan opsi instalasi. Service worker memeriksa pembaruan aset app shell saat aplikasi dibuka dan memakai cache hanya jika jaringan tidak tersedia. Pada perangkat sentuh, tarik layar ke bawah dari bagian paling atas untuk memuat ulang aplikasi. App shell yang sudah tersimpan dapat dibuka saat offline, tetapi login dan pemuatan data tetap memerlukan koneksi internet. Service worker hanya menyimpan aset frontend; respons API dan data siswa tidak disimpan di cache.
 
 ## ✨ Fitur
 
 - ✅ Login dengan NIS atau Email
+- ✅ Sesi login dipertahankan dan username dapat diingat tanpa menyimpan password
 - ✅ Splash screen saat halaman dibuka
 - ✅ Reset password via email
 - ✅ Kalender absensi interaktif

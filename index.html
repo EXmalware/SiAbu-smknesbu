@@ -14,7 +14,7 @@
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
   <!-- Include external CSS -->
-  <link rel="stylesheet" href="css/styles.css?v=20261103">
+  <link rel="stylesheet" href="css/styles.css?v=20261103-pull-refresh">
 </head>
 
 <body>
@@ -35,6 +35,11 @@
   <div id="loading-overlay">
     <div class="spinner"></div>
     <p class="loading-text" id="loading-text"></p>
+  </div>
+
+  <div id="pull-to-refresh-indicator" class="pull-to-refresh-indicator" role="status" aria-live="polite" hidden>
+    <i class="fas fa-arrow-down" aria-hidden="true"></i>
+    <span>Tarik ke bawah untuk memuat ulang</span>
   </div>
 
   <div id="notification-bar"></div>
@@ -86,6 +91,10 @@
           <button type="button" class="toggle-password login-password-toggle" aria-label="Tampilkan password"
             onclick="togglePasswordVisibility()"><i class="fas fa-eye" aria-hidden="true"></i></button>
         </div>
+        <label class="login-remember-row" for="rememberMe">
+          <input type="checkbox" id="rememberMe">
+          <span>Ingat username di perangkat ini <small>(password tidak disimpan)</small></span>
+        </label>
         <button id="loginBtn" class="login-submit" onclick="login()">
           <span>Masuk</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
         </button>
@@ -692,7 +701,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/mock_data.js"></script>
-  <script src="js/script.js?v=20261103"></script>
+  <script src="js/script.js?v=20261103-pull-refresh"></script>
 </body>
 
 </html>

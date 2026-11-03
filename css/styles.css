@@ -1119,6 +1119,55 @@ body.dark-mode #notification-bar.info {
   pointer-events: none;
 }
 
+.pull-to-refresh-indicator {
+  position: fixed;
+  z-index: 3500;
+  top: max(8px, env(safe-area-inset-top));
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.65rem 0.95rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #26354d;
+  font-size: 0.8rem;
+  font-weight: 600;
+  box-shadow: 0 5px 18px rgba(15, 23, 42, 0.18);
+  transform: translate(-50%, calc(-100% - 12px));
+  transition: transform 0.18s ease;
+  pointer-events: none;
+}
+
+.pull-to-refresh-indicator[hidden] {
+  display: none;
+}
+
+.pull-to-refresh-indicator.is-pulling {
+  transform: translate(-50%, var(--pull-distance, 0));
+}
+
+.pull-to-refresh-indicator i {
+  color: #3156d3;
+  transition: transform 0.18s ease;
+}
+
+.pull-to-refresh-indicator.is-ready i {
+  transform: rotate(180deg);
+}
+
+.pull-to-refresh-indicator.is-refreshing i {
+  animation: spin 0.8s linear infinite;
+}
+
+body.dark-mode .pull-to-refresh-indicator {
+  border-color: #3a4861;
+  background: #1b2639;
+  color: #e8eef8;
+}
+
 .app-splash-content {
   display: flex;
   flex-direction: column;
@@ -2423,6 +2472,36 @@ body.dark-mode .login-intro p {
 
 body.dark-mode .login-fields label {
   color: #e5e7eb;
+}
+
+.login-fields .login-remember-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin: 0.15rem 0 0.2rem;
+  color: #34425b;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.login-remember-row input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
+  padding: 0;
+  accent-color: #3156d3;
+}
+
+.login-remember-row small {
+  color: #596579;
+  font-size: 0.72rem;
+}
+
+body.dark-mode .login-fields .login-remember-row,
+body.dark-mode .login-remember-row small {
+  color: #c1ccdc;
 }
 
 .login-input-wrap {

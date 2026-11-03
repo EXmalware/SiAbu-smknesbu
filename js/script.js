@@ -7,6 +7,9 @@ let lastQrTrigger = null;
 let dashboardStatsRequested = false;
 let appSplashTimeout = null;
 let selectedMonitoringClass = null;
+let pullToRefreshStart = null;
+let pullToRefreshDistance = 0;
+let pullToRefreshRunning = false;
 let ktdsLoaded = false;
 let currentKtdsValues = {};
 const KTDS_FIELDS = [
@@ -103,6 +106,11 @@ document.addEventListener("DOMContentLoaded", function () {
     registerServiceWorker();
 
     const savedUser = localStorage.getItem('currentUser');
+    const rememberedUsername = localStorage.getItem("rememberedUsername");
+    if (rememberedUsername) {
+        document.getElementById("username").value = rememberedUsername;
+        document.getElementById("rememberMe").checked = true;
+    }
     if (savedUser) {
         currentUser = JSON.parse(savedUser);
         currentUser.role = String(currentUser.role || "SISWA").toUpperCase();
@@ -138,6 +146,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const card = event.target.closest("[data-summary-card]");
         if (card) toggleStaffSummaryMetric(card);
     });
+    document.getElementById("rememberMe").addEventListener("change", event => {
+        if (!event.target.checked) localStorage.removeItem("rememberedUsername");
+    });
+    setupPullToRefresh();
 
     document.addEventListener("keydown", event => {
         const detailModal = document.getElementById("detail-modal");
@@ -185,6 +197,71 @@ document.addEventListener("DOMContentLoaded", function () {
     setInterval(updateClock, 1000);
     updateClock();
 });
+
+function setupPullToRefresh() {
+    const indicator = document.getElementById("pull-to-refresh-indicator");
+    if (!indicator) return;
+
+    document.addEventListener("touchstart", event => {
+        if (pullToRefreshRunning || window.scrollY > 0 || event.touches.length !== 1 ||
+            !(event.target instanceof Element) || event.touches[0].clientY > 100 ||
+            event.target.closest("button, a, input, select, textarea, [role='button'], [contenteditable='true'], .modal, .table-responsive")) {
+            pullToRefreshStart = null;
+            return;
+        }
+        pullToRefreshStart = {
+            x: event.touches[0].clientX,
+            y: event.touches[0].clientY
+        };
+        pullToRefreshDistance = 0;
+    }, { passive: true });
+
+    document.addEventListener("touchmove", event => {
+        if (!pullToRefreshStart || pullToRefreshRunning || event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        const deltaY = touch.clientY - pullToRefreshStart.y;
+        const deltaX = touch.clientX - pullToRefreshStart.x;
+        if (deltaY <= 0 || Math.abs(deltaX) > deltaY) {
+            pullToRefreshStart = null;
+            indicator.hidden = true;
+            return;
+        }
+        if (event.cancelable) event.preventDefault();
+        pullToRefreshDistance = Math.min(deltaY * 0.55, 88);
+        indicator.hidden = false;
+        indicator.classList.add("is-pulling");
+        indicator.classList.toggle("is-ready", pullToRefreshDistance >= 68);
+        indicator.style.setProperty("--pull-distance", `${pullToRefreshDistance}px`);
+        indicator.querySelector("span").textContent = pullToRefreshDistance >= 68
+            ? "Lepaskan untuk memuat ulang"
+            : "Tarik ke bawah untuk memuat ulang";
+    }, { passive: false });
+
+    document.addEventListener("touchend", () => {
+        if (!pullToRefreshStart) return;
+        pullToRefreshStart = null;
+        if (pullToRefreshDistance >= 68) {
+            pullToRefreshRunning = true;
+            indicator.classList.add("is-refreshing");
+            indicator.querySelector("span").textContent = "Memuat ulang...";
+            window.setTimeout(() => window.location.reload(), 250);
+            return;
+        }
+        indicator.classList.remove("is-pulling", "is-ready");
+        indicator.style.removeProperty("--pull-distance");
+        window.setTimeout(() => {
+            if (!indicator.classList.contains("is-pulling")) indicator.hidden = true;
+        }, 200);
+    }, { passive: true });
+
+    document.addEventListener("touchcancel", () => {
+        pullToRefreshStart = null;
+        pullToRefreshDistance = 0;
+        indicator.classList.remove("is-pulling", "is-ready", "is-refreshing");
+        indicator.style.removeProperty("--pull-distance");
+        indicator.hidden = true;
+    }, { passive: true });
+}
 
 function registerServiceWorker() {
     if (!window.isSecureContext || !("serviceWorker" in navigator)) return;
@@ -333,6 +410,12 @@ async function login() {
                 throw new Error("Role akun tidak valid.");
             }
             localStorage.setItem('currentUser', JSON.stringify(res));
+            if (document.getElementById("rememberMe").checked) {
+                localStorage.setItem("rememberedUsername", username);
+            } else {
+                localStorage.removeItem("rememberedUsername");
+            }
+            document.getElementById("password").value = "";
             showNotification("Login Berhasil!", "success");
             currentUser = res;
             document.getElementById("loginForm").style.display = "none";
@@ -378,7 +461,7 @@ async function performLogout() {
     document.getElementById("loginForm").style.display = "grid";
     document.getElementById("loginForm").classList.add("fade-in");
     document.getElementById("userPanel").classList.remove("fade-in");
-    document.getElementById("username").value = "";
+    document.getElementById("username").value = localStorage.getItem("rememberedUsername") || "";
     document.getElementById("password").value = "";
     if (sessionToken) {
         try {
