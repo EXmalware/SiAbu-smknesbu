@@ -722,6 +722,7 @@ function configureDashboardForRole(role) {
     document.getElementById("staff-holiday-menu").hidden = !isAdmin;
     document.getElementById("staff-permission-menu").hidden = isStudent;
     document.getElementById("staff-early-dismissal-menu").hidden = role !== "SUPERADMIN";
+    document.getElementById("dashboard-student-class").hidden = !isStudent;
 }
 
 async function loadStaffAttendanceSummary(button = null) {
@@ -849,7 +850,19 @@ function updateDashboardGreeting() {
     const userName = currentUser && currentUser.nama ? currentUser.nama : "siswa";
     document.getElementById("dashboard-home-title").textContent = greeting;
     document.getElementById("dashboard-home-user-name").textContent = userName;
+    updateDashboardStudentClass();
     document.querySelector(".dashboard-home-heading").dataset.timePeriod = timePeriod;
+}
+
+function updateDashboardStudentClass() {
+    const classElement = document.getElementById("dashboard-student-class");
+    if (!classElement) return;
+
+    const className = currentUser && currentUser.role === "SISWA"
+        ? String(currentUser.kelas || "").trim()
+        : "";
+    classElement.textContent = className;
+    classElement.hidden = !className;
 }
 
 function showStaffFeature(feature) {
@@ -1865,11 +1878,12 @@ function renderMonitoringStudents(students) {
         const statusCell = row.insertCell();
         const status = document.createElement("span");
         status.className = "staff-monitoring-attendance-status";
-        const description = getStatusDescription(student.keterangan);
-        status.textContent = getAttendanceShortCode(student.keterangan);
+        const shortCode = getAttendanceShortCode(student.keterangan);
+        const description = getStatusDescription(shortCode);
+        status.textContent = shortCode;
         status.title = description;
-        status.setAttribute("aria-label", `${description} (${status.textContent})`);
-        const statusClass = getStatusClass(student.keterangan);
+        status.setAttribute("aria-label", `${shortCode} - ${description}`);
+        const statusClass = getStatusClass(shortCode);
         if (statusClass) status.classList.add(statusClass);
         statusCell.appendChild(status);
     });
@@ -2025,6 +2039,9 @@ async function loadDashboardUserClass() {
 
         currentUser.kelas = profile.kelas || "";
         localStorage.setItem("currentUser", JSON.stringify(currentUser));
+        updateDashboardStudentClass();
+        updateAttendanceIdentity();
+        updateKtdsClass();
     } catch (error) {
         console.error("Gagal memuat kelas siswa:", error);
         showNotification("Kelas siswa gagal dimuat: " + error.message, "error");
@@ -2094,7 +2111,16 @@ function showAbsenPanel() {
     document.getElementById("ktdsContent").style.display = "none";
     document.getElementById("absenContent").classList.add("fade-in");
     document.getElementById("attendance-title").focus({ preventScroll: true });
+    updateAttendanceIdentity();
     filterData();
+}
+
+function updateAttendanceIdentity() {
+    if (!currentUser || currentUser.role !== "SISWA") return;
+
+    document.getElementById("attendance-student-name").textContent = currentUser.nama || "-";
+    document.getElementById("attendance-student-nis").textContent = currentUser.nis || "-";
+    document.getElementById("attendance-student-class").textContent = currentUser.kelas || "-";
 }
 
 function showProfilePanel() {
@@ -2129,8 +2155,20 @@ function showKtdsPanel() {
     document.getElementById("ktdsContent").classList.add("fade-in");
     document.getElementById("ktdsNama").textContent = currentUser.nama || "-";
     document.getElementById("ktdsNis").textContent = currentUser.nis || "-";
+    updateKtdsClass();
     document.getElementById("ktds-title").focus({ preventScroll: true });
     loadKtds();
+}
+
+function updateKtdsClass() {
+    const classElement = document.getElementById("ktdsClass");
+    if (!classElement) return;
+
+    const className = currentUser && currentUser.role === "SISWA"
+        ? String(currentUser.kelas || "").trim()
+        : "";
+    classElement.textContent = className;
+    classElement.hidden = !className;
 }
 
 function renderKtdsForm(values = {}) {
@@ -2344,6 +2382,14 @@ async function loadProfile() {
             document.getElementById("profileNama").innerText = res.nama;
             document.getElementById("profileNis").innerText = res.nis;
             document.getElementById("profileEmail").value = res.email;
+            const className = String(res.kelas || currentUser.kelas || "").trim();
+            const profileClass = document.getElementById("profileClass");
+            profileClass.textContent = className;
+            profileClass.hidden = !className;
+            if (className) {
+                currentUser.kelas = className;
+                updateKtdsClass();
+            }
         } else {
             showNotification(res.message, "error");
         }
@@ -2802,7 +2848,7 @@ function getAttendanceShortCode(status) {
         IZIN: "I",
         SAKIT: "S",
         TERLAMBAT: "T",
-        "BELUM ABSEN": "BA",
+        "BELUM ABSEN": "A",
         PULANG: "P",
         LIBUR: "OFF",
         "HARI BESAR": "HB",

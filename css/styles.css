@@ -593,6 +593,7 @@ body.dark-mode .profile-nis {
 }
 
 .profile-identity {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.85rem;
@@ -603,6 +604,33 @@ body.dark-mode .profile-nis {
   background: #f8faff;
 }
 
+.profile-identity-details {
+  min-width: 0;
+  padding-right: 4.5rem;
+}
+
+.profile-class {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.8rem;
+  max-width: 42%;
+  overflow: hidden;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid #d5e0f3;
+  border-radius: 999px;
+  background: #edf2fb;
+  color: #3156a8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-class[hidden] {
+  display: none;
+}
+
 .profile-identity-label {
   color: #4b5563;
   font-size: 0.75rem;
@@ -611,6 +639,12 @@ body.dark-mode .profile-nis {
 body.dark-mode .profile-identity {
   border-color: #3a4861;
   background: #243149;
+}
+
+body.dark-mode .profile-class {
+  border-color: #415477;
+  background: #182337;
+  color: #c7d7f5;
 }
 
 body.dark-mode .profile-identity-label {
@@ -970,6 +1004,17 @@ body.dark-mode .profile-password-toggle:active {
 @media (max-width: 640px) {
   .profile-identity {
     padding: 0.85rem;
+  }
+
+  .profile-identity-details {
+    padding-right: 3.8rem;
+  }
+
+  .profile-class {
+    top: 0.65rem;
+    right: 0.65rem;
+    max-width: 40%;
+    font-size: 0.68rem;
   }
 
   .profile-avatar {
@@ -2849,6 +2894,52 @@ body.dark-mode .nav-buttons button.active {
   font-size: 0.88rem;
 }
 
+.attendance-identity {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.attendance-identity-item {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.attendance-identity-item span {
+  color: #6b7280;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.attendance-identity-item strong {
+  overflow: hidden;
+  color: #1f2937;
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.dark-mode .attendance-identity {
+  border-color: #374151;
+  background: #1f2937;
+}
+
+body.dark-mode .attendance-identity-item span {
+  color: #9ca3af;
+}
+
+body.dark-mode .attendance-identity-item strong {
+  color: #f3f4f6;
+}
+
 body.dark-mode .dashboard-section-heading p {
   color: #d1d5db;
 }
@@ -2999,6 +3090,16 @@ body.dark-mode .legend-container {
 
   .dashboard-section-heading p {
     font-size: 0.8rem;
+  }
+
+  .attendance-identity {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem 0.75rem;
+    padding: 0.7rem 0.8rem;
+  }
+
+  .attendance-identity-item:first-child {
+    grid-column: 1 / -1;
   }
 
   .filter-container {
@@ -3414,6 +3515,32 @@ body.dark-mode .attendance-state-copy p {
   overflow-wrap: anywhere;
 }
 
+.dashboard-home-heading .dashboard-student-class {
+  position: absolute;
+  z-index: 0;
+  right: 1rem;
+  bottom: 0.35rem;
+  max-width: 62%;
+  overflow: hidden;
+  color: rgba(38, 53, 77, 0.12);
+  font-size: clamp(1.6rem, 7vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.dashboard-home-heading .dashboard-student-class[hidden] {
+  display: none;
+}
+
+.dashboard-home-heading > :not(.dashboard-student-class) {
+  z-index: 1;
+}
+
 .dashboard-home-heading h2:focus {
   outline: none;
 }
@@ -3431,6 +3558,10 @@ body.dark-mode .dashboard-home-heading h2 {
 
 body.dark-mode .dashboard-home-heading .dashboard-home-user-name {
   color: #e0e8f5;
+}
+
+body.dark-mode .dashboard-home-heading .dashboard-student-class {
+  color: rgba(232, 238, 248, 0.1);
 }
 
 body.dark-mode .dashboard-home-heading {

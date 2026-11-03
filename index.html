@@ -14,7 +14,7 @@
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
   <!-- Include external CSS -->
-  <link rel="stylesheet" href="css/styles.css?v=20261103-carousel-idle">
+  <link rel="stylesheet" href="css/styles.css?v=20261103-ktds-class">
 </head>
 
 <body>
@@ -126,6 +126,7 @@
           </div>
           <h2 id="dashboard-home-title" tabindex="-1">Selamat pagi</h2>
           <p id="dashboard-home-user-name" class="dashboard-home-user-name"></p>
+          <span id="dashboard-student-class" class="dashboard-student-class" hidden></span>
           <p id="dashboard-home-description">Pilih menu untuk mulai menjelajahi layanan siswa.</p>
         </div>
         <section id="student-dashboard-statistics" class="dashboard-statistics rpg-status-panel" aria-labelledby="dashboard-statistics-title">
@@ -487,6 +488,20 @@
             <p>Pantau kehadiran harian Anda.</p>
           </div>
         </div>
+        <div class="attendance-identity" aria-label="Identitas siswa">
+          <div class="attendance-identity-item">
+            <span>Nama</span>
+            <strong id="attendance-student-name">-</strong>
+          </div>
+          <div class="attendance-identity-item">
+            <span>NIS</span>
+            <strong id="attendance-student-nis">-</strong>
+          </div>
+          <div class="attendance-identity-item">
+            <span>Kelas</span>
+            <strong id="attendance-student-class">-</strong>
+          </div>
+        </div>
         <div class="filter-container">
           <label class="sr-only" for="bulanFilter">Pilih bulan</label>
           <select id="bulanFilter" aria-label="Pilih bulan"></select>
@@ -578,11 +593,12 @@
 
           <div class="profile-identity">
             <span class="profile-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
-            <div>
+            <div class="profile-identity-details">
               <span class="profile-identity-label">Nama siswa</span>
               <p class="profile-name" id="profileNama"></p>
               <p class="profile-nis"><span>NIS</span><strong id="profileNis"></strong></p>
             </div>
+            <span class="profile-class" id="profileClass" hidden></span>
           </div>
 
           <div class="profile-form">
@@ -630,11 +646,12 @@
           </div>
           <div class="profile-identity">
             <span class="profile-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
-            <div>
+            <div class="profile-identity-details">
               <span class="profile-identity-label">Nama siswa</span>
               <p class="profile-name" id="ktdsNama"></p>
               <p class="profile-nis"><span>NIS</span><strong id="ktdsNis"></strong></p>
             </div>
+            <span class="profile-class" id="ktdsClass" hidden></span>
           </div>
           <p id="ktds-status" class="staff-directory-status" role="status" aria-live="polite"></p>
           <div id="ktds-readonly-fields" class="ktds-fields" aria-live="polite"></div>
@@ -712,7 +729,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/mock_data.js"></script>
-  <script src="js/script.js?v=20261103-carousel-idle"></script>
+  <script src="js/script.js?v=20261103-ktds-class"></script>
 </body>
 
 </html>
