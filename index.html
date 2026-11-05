@@ -14,7 +14,7 @@
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
   <!-- Include external CSS -->
-  <link rel="stylesheet" href="css/styles.css?v=20261103-ktds-class">
+  <link rel="stylesheet" href="css/styles.css?v=20261105-monthly-status-codes">
 </head>
 
 <body>
@@ -128,6 +128,7 @@
           <p id="dashboard-home-user-name" class="dashboard-home-user-name"></p>
           <span id="dashboard-student-class" class="dashboard-student-class" hidden></span>
           <p id="dashboard-home-description">Pilih menu untuk mulai menjelajahi layanan siswa.</p>
+          <p id="dashboard-homeroom-class" class="dashboard-home-homeroom" aria-live="polite" hidden></p>
         </div>
         <section id="student-dashboard-statistics" class="dashboard-statistics rpg-status-panel" aria-labelledby="dashboard-statistics-title">
           <div class="dashboard-statistics-heading">
@@ -293,6 +294,14 @@
             <span class="dashboard-menu-icon"><i class="fas fa-clipboard-list" aria-hidden="true"></i></span>
             <span class="dashboard-menu-label">Pantau Absensi</span>
           </button>
+          <button id="staff-monthly-summary-menu" type="button" class="dashboard-menu-card staff-monthly-summary-menu-card" onclick="showStaffFeature('monthlySummary')" hidden>
+            <span class="dashboard-menu-icon"><i class="fas fa-chart-column" aria-hidden="true"></i></span>
+            <span class="dashboard-menu-label">Rekap Bulanan</span>
+          </button>
+          <button id="staff-alpha-students-menu" type="button" class="dashboard-menu-card staff-alpha-menu-card" onclick="showStaffFeature('alphaStudents')" hidden>
+            <span class="dashboard-menu-icon"><i class="fas fa-user-times" aria-hidden="true"></i></span>
+            <span class="dashboard-menu-label">Siswa Alpa</span>
+          </button>
           <button id="staff-permission-menu" type="button" class="dashboard-menu-card staff-permission-menu-card" onclick="showStaffFeature('permissions')" hidden>
             <span class="dashboard-menu-icon"><i class="fas fa-notes-medical" aria-hidden="true"></i></span>
             <span class="dashboard-menu-label">Data Izin</span>
@@ -451,6 +460,58 @@
             <div id="staff-monitoring-students" class="staff-directory-content"></div>
           </div>
           <p id="staff-monitoring-status" class="staff-directory-status" role="status" aria-live="polite"></p>
+        </section>
+        <section id="staff-alpha-students-panel" class="staff-directory-panel" aria-labelledby="staff-alpha-students-title" hidden>
+          <div class="staff-directory-heading">
+            <div>
+              <span class="dashboard-eyebrow">Pemantauan kehadiran</span>
+              <h3 id="staff-alpha-students-title">Siswa Alpa</h3>
+              <p id="staff-alpha-students-count" class="staff-permission-count" role="status" aria-live="polite">Jumlah siswa alpa: -</p>
+            </div>
+            <button type="button" class="staff-refresh-button" aria-label="Muat ulang siswa alpa" title="Muat ulang siswa alpa" onclick="refreshStaffFeature('alphaStudents', this)">
+              <i class="fas fa-rotate" aria-hidden="true"></i>
+            </button>
+          </div>
+          <form id="staff-alpha-students-filters" class="staff-permission-filters" onsubmit="event.preventDefault(); loadAlphaStudents();">
+            <label for="staff-alpha-students-class">Kelas</label>
+            <select id="staff-alpha-students-class" required>
+              <option value="">Pilih kelas</option>
+            </select>
+            <div class="staff-permission-submit">
+              <button type="submit"><i class="fas fa-filter" aria-hidden="true"></i><span>Terapkan</span></button>
+              <span class="staff-permission-date-display">Status hari ini</span>
+            </div>
+          </form>
+          <p id="staff-alpha-students-status" class="staff-directory-status" role="status" aria-live="polite"></p>
+          <div id="staff-alpha-students-content" class="staff-directory-content"></div>
+        </section>
+        <section id="staff-monthly-summary-panel" class="staff-directory-panel" aria-labelledby="staff-monthly-summary-title" hidden>
+          <div class="staff-directory-heading">
+            <div>
+              <span class="dashboard-eyebrow">Rekap kehadiran</span>
+              <h3 id="staff-monthly-summary-title">Rekap Bulanan</h3>
+              <p>Jumlah setiap status absensi per siswa pada bulan terpilih.</p>
+            </div>
+            <button type="button" class="staff-refresh-button" aria-label="Muat ulang rekap bulanan" title="Muat ulang rekap bulanan" onclick="refreshStaffFeature('monthlySummary', this)">
+              <i class="fas fa-rotate" aria-hidden="true"></i>
+            </button>
+          </div>
+          <form id="staff-monthly-summary-filters" class="staff-permission-filters staff-monthly-filters" onsubmit="event.preventDefault(); loadMonthlyAttendanceSummary();">
+            <label for="staff-monthly-summary-month">Bulan</label>
+            <select id="staff-monthly-summary-month" required></select>
+            <label for="staff-monthly-summary-year">Tahun</label>
+            <select id="staff-monthly-summary-year" required></select>
+            <label for="staff-monthly-summary-class">Kelas</label>
+            <select id="staff-monthly-summary-class" required>
+              <option value="">Pilih kelas</option>
+            </select>
+            <div class="staff-permission-submit">
+              <button type="submit"><i class="fas fa-filter" aria-hidden="true"></i><span>Terapkan</span></button>
+            </div>
+          </form>
+          <p id="staff-monthly-summary-status" class="staff-directory-status" role="status" aria-live="polite"></p>
+          <div id="staff-monthly-summary-content" class="staff-directory-content"></div>
+          <p id="staff-monthly-summary-note" class="staff-monthly-summary-note" role="note" hidden></p>
         </section>
         <section id="staff-permission-panel" class="staff-directory-panel" aria-labelledby="staff-permission-title" hidden>
           <div class="staff-directory-heading">
@@ -728,8 +789,8 @@
   <!-- Include external JavaScript -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="js/config.js"></script>
-  <script src="js/mock_data.js"></script>
-  <script src="js/script.js?v=20261103-ktds-class"></script>
+  <script src="js/mock_data.js?v=20261105-monthly-status-codes"></script>
+  <script src="js/script.js?v=20261105-monthly-status-codes"></script>
 </body>
 
 </html>

@@ -7,6 +7,9 @@ let lastQrTrigger = null;
 let dashboardStatsRequested = false;
 let appSplashTimeout = null;
 let selectedMonitoringClass = null;
+let staffMonitoringClassData = null;
+let staffMonitoringClassesRequest = null;
+let staffPermissionClassFilterInitialized = false;
 let pullToRefreshStart = null;
 let pullToRefreshDistance = 0;
 let pullToRefreshRunning = false;
@@ -38,6 +41,20 @@ const KTDS_FIELDS = [
     { name: "NOMER TELPON WALI SISWA", label: "Nomor telepon wali siswa", type: "tel" },
     { name: "PEKERJAAN WALI SISWA", label: "Pekerjaan wali siswa", type: "text" }
 ];
+const MONTHLY_ATTENDANCE_STATUS_LABELS = {
+    H: "Hadir",
+    A: "Alpa",
+    I: "Izin",
+    S: "Sakit",
+    T: "Terlambat",
+    TAP: "Tidak Absen Pulang",
+    TAM: "Tidak Absen Masuk",
+    TAPT: "Tidak Absen Pulang & Terlambat",
+    P: "Pulang",
+    PT: "Pulang & Terlambat",
+    HB: "Hari Besar",
+    OFF: "Libur"
+};
 
 function showAppSplash() {
     const splash = document.getElementById("app-splash-screen");
@@ -573,6 +590,8 @@ function showLogoutConfirmation() {
 async function performLogout() {
     const sessionToken = currentUser && currentUser.sessionToken;
     currentUser = null;
+    staffMonitoringClassData = null;
+    staffMonitoringClassesRequest = null;
     dashboardStatsRequested = false;
     currentAbsenData = [];
     document.getElementById("header-qr-button").hidden = true;
@@ -680,6 +699,12 @@ function showDashboardHome() {
         document.getElementById("staff-permission-content").replaceChildren();
         document.getElementById("staff-permission-status").textContent = "";
     }
+    document.getElementById("staff-alpha-students-panel").hidden = true;
+    document.getElementById("staff-alpha-students-content").replaceChildren();
+    document.getElementById("staff-alpha-students-status").textContent = "";
+    document.getElementById("staff-monthly-summary-panel").hidden = true;
+    document.getElementById("staff-monthly-summary-content").replaceChildren();
+    document.getElementById("staff-monthly-summary-note").hidden = true;
     const isStudent = !currentUser || currentUser.role === "SISWA";
     document.getElementById("staff-menu-grid").hidden = isStudent;
     document.getElementById("staff-dashboard-note").hidden = isStudent;
@@ -698,6 +723,9 @@ function showDashboardHome() {
         filterData();
     } else if (currentUser && ["GURU", "ADMIN", "SUPERADMIN"].includes(String(currentUser.role || "").toUpperCase())) {
         loadStaffAttendanceSummary();
+        if (String(currentUser.role || "").toUpperCase() === "GURU") {
+            loadTeacherHomeroomClass();
+        }
     }
 }
 
@@ -722,7 +750,36 @@ function configureDashboardForRole(role) {
     document.getElementById("staff-holiday-menu").hidden = !isAdmin;
     document.getElementById("staff-permission-menu").hidden = isStudent;
     document.getElementById("staff-early-dismissal-menu").hidden = role !== "SUPERADMIN";
+    document.getElementById("staff-alpha-students-menu").hidden = !isAdmin;
+    document.getElementById("staff-monthly-summary-menu").hidden = isStudent;
     document.getElementById("dashboard-student-class").hidden = !isStudent;
+    document.getElementById("dashboard-homeroom-class").hidden = role !== "GURU";
+    document.getElementById("dashboard-homeroom-class").textContent = "";
+    staffMonitoringClassData = null;
+    staffMonitoringClassesRequest = null;
+    staffPermissionClassFilterInitialized = false;
+}
+
+async function loadTeacherHomeroomClass() {
+    const sessionToken = currentUser && currentUser.sessionToken;
+    const classNote = document.getElementById("dashboard-homeroom-class");
+    classNote.hidden = false;
+    classNote.textContent = "Memuat informasi wali kelas...";
+    try {
+        const result = await getStaffMonitoringClassData();
+        if (!currentUser || currentUser.sessionToken !== sessionToken || currentUser.role !== "GURU") return;
+        const homeroomClasses = result.homeroomClasses;
+        if (!homeroomClasses.length) {
+            classNote.hidden = true;
+            classNote.textContent = "";
+            return;
+        }
+        classNote.textContent = `Wali kelas: ${homeroomClasses.join(", ")}`;
+    } catch (error) {
+        if (!currentUser || currentUser.sessionToken !== sessionToken || currentUser.role !== "GURU") return;
+        classNote.textContent = "Informasi wali kelas tidak dapat dimuat.";
+        console.error("Gagal memuat informasi wali kelas:", error);
+    }
 }
 
 async function loadStaffAttendanceSummary(button = null) {
@@ -871,7 +928,7 @@ function showStaffFeature(feature) {
         showNotification("Menu ini hanya tersedia untuk akun admin atau guru.", "error");
         return;
     }
-    if (!["monitoring", "manage", "events", "holidays", "earlyDismissals", "permissions"].includes(feature)) {
+    if (!["monitoring", "manage", "events", "holidays", "earlyDismissals", "permissions", "alphaStudents", "monthlySummary"].includes(feature)) {
         showNotification("Menu staf tidak dikenal.", "error");
         return;
     }
@@ -895,6 +952,14 @@ function showStaffFeature(feature) {
         showNotification("Data izin hanya tersedia untuk akun staf.", "error");
         return;
     }
+    if (feature === "alphaStudents" && !["ADMIN", "SUPERADMIN"].includes(role)) {
+        showNotification("Pemantauan siswa alpa hanya tersedia untuk admin atau superadmin.", "error");
+        return;
+    }
+    if (feature === "monthlySummary" && !["GURU", "ADMIN", "SUPERADMIN"].includes(role)) {
+        showNotification("Rekap bulanan hanya tersedia untuk akun staf.", "error");
+        return;
+    }
 
     if (feature === "manage") {
         showGuruManagement();
@@ -916,6 +981,14 @@ function showStaffFeature(feature) {
         showPermissionManagement();
         return;
     }
+    if (feature === "alphaStudents") {
+        showAdminAlphaStudents();
+        return;
+    }
+    if (feature === "monthlySummary") {
+        showMonthlyAttendanceSummary();
+        return;
+    }
     showStaffMonitoring();
 }
 
@@ -935,7 +1008,7 @@ async function refreshStaffFeature(feature, button) {
             if (!studentView.hidden && selectedMonitoringClass) {
                 await loadMonitoringStudents(selectedMonitoringClass);
             } else {
-                await loadMonitoringClasses();
+                await loadMonitoringClasses(true);
             }
         } else if (feature === "manage") {
             await loadGuruDirectory();
@@ -947,6 +1020,21 @@ async function refreshStaffFeature(feature, button) {
             await loadEarlyDismissals();
         } else if (feature === "permissions") {
             await loadPermissionData();
+        } else if (feature === "alphaStudents") {
+            if (!["ADMIN", "SUPERADMIN"].includes(String(currentUser.role || "").toUpperCase())) {
+                throw new Error("Pemantauan siswa alpa hanya tersedia untuk admin atau superadmin.");
+            }
+            const className = document.getElementById("staff-alpha-students-class").value;
+            if (className) {
+                await loadAlphaStudents();
+            } else {
+                await loadAlphaStudentClasses(true);
+            }
+        } else if (feature === "monthlySummary") {
+            if (!["GURU", "ADMIN", "SUPERADMIN"].includes(String(currentUser.role || "").toUpperCase())) {
+                throw new Error("Rekap bulanan hanya tersedia untuk akun staf.");
+            }
+            await loadMonthlyAttendanceClasses(true);
         } else {
             throw new Error("Menu staf tidak dikenal.");
         }
@@ -966,6 +1054,8 @@ function showEventManagement() {
     document.getElementById("staff-holiday-panel").hidden = true;
     document.getElementById("staff-early-dismissal-panel").hidden = true;
     document.getElementById("staff-permission-panel").hidden = true;
+    document.getElementById("staff-alpha-students-panel").hidden = true;
+    document.getElementById("staff-monthly-summary-panel").hidden = true;
     document.getElementById("staff-event-panel").hidden = false;
     cancelEventEdit();
     loadEvents();
@@ -1155,6 +1245,8 @@ function showHolidayManagement() {
     document.getElementById("staff-event-panel").hidden = true;
     document.getElementById("staff-early-dismissal-panel").hidden = true;
     document.getElementById("staff-permission-panel").hidden = true;
+    document.getElementById("staff-alpha-students-panel").hidden = true;
+    document.getElementById("staff-monthly-summary-panel").hidden = true;
     document.getElementById("staff-holiday-panel").hidden = false;
     cancelHolidayEdit();
     loadHolidays();
@@ -1352,6 +1444,8 @@ function showEarlyDismissalManagement() {
     document.getElementById("staff-event-panel").hidden = true;
     document.getElementById("staff-holiday-panel").hidden = true;
     document.getElementById("staff-permission-panel").hidden = true;
+    document.getElementById("staff-alpha-students-panel").hidden = true;
+    document.getElementById("staff-monthly-summary-panel").hidden = true;
     document.getElementById("staff-early-dismissal-panel").hidden = false;
     cancelEarlyDismissalEdit();
     loadEarlyDismissals();
@@ -1551,6 +1645,8 @@ function showStaffMonitoring() {
     if (document.getElementById("staff-permission-panel")) {
         document.getElementById("staff-permission-panel").hidden = true;
     }
+    document.getElementById("staff-alpha-students-panel").hidden = true;
+    document.getElementById("staff-monthly-summary-panel").hidden = true;
     selectedMonitoringClass = null;
     setDashboardMenuView(true);
     document.getElementById("staff-dashboard-note").hidden = true;
@@ -1563,7 +1659,39 @@ function showStaffMonitoring() {
     loadMonitoringClasses();
 }
 
-async function loadMonitoringClasses() {
+async function getStaffMonitoringClassData(forceRefresh = false) {
+    if (!forceRefresh && staffMonitoringClassData) return staffMonitoringClassData;
+    if (staffMonitoringClassesRequest) return staffMonitoringClassesRequest;
+    if (!currentUser || !currentUser.sessionToken) {
+        throw new Error("Sesi login belum mendukung fitur ini. Silakan keluar dan masuk kembali.");
+    }
+
+    const sessionToken = currentUser.sessionToken;
+    const request = (async () => {
+        const result = await apiCall("getMonitoringClasses", "POST", {
+            sessionToken
+        });
+        if (!result || result.status !== "success" || !Array.isArray(result.classes)) {
+            throw new Error(result && result.message ? result.message : "Format daftar kelas tidak valid.");
+        }
+        if (!currentUser || currentUser.sessionToken !== sessionToken) {
+            throw new Error("Sesi login berubah. Silakan muat ulang informasi kelas.");
+        }
+        staffMonitoringClassData = {
+            classes: result.classes,
+            homeroomClasses: Array.isArray(result.homeroomClasses) ? result.homeroomClasses : []
+        };
+        return staffMonitoringClassData;
+    })();
+    staffMonitoringClassesRequest = request;
+    try {
+        return await request;
+    } finally {
+        if (staffMonitoringClassesRequest === request) staffMonitoringClassesRequest = null;
+    }
+}
+
+async function loadMonitoringClasses(forceRefresh = false) {
     const role = currentUser && String(currentUser.role || "").toUpperCase();
     if (!["GURU", "ADMIN", "SUPERADMIN"].includes(role)) {
         showNotification("Hanya akun staf yang dapat memantau data siswa.", "error");
@@ -1586,40 +1714,351 @@ async function loadMonitoringClasses() {
     status.classList.remove("is-error");
 
     try {
-        const result = await apiCall("getMonitoringClasses", "POST", {
-            sessionToken: currentUser.sessionToken
-        });
-        if (!result || result.status !== "success" || !Array.isArray(result.classes)) {
-            throw new Error(result && result.message ? result.message : "Format daftar kelas tidak valid.");
-        }
+        const result = await getStaffMonitoringClassData(forceRefresh);
         if (result.classes.length === 0) {
             status.textContent = "Belum ada data kelas pada sheet SISWA.";
             return;
         }
-        result.classes.forEach(className => {
+        const homeroomByKey = new Set(result.homeroomClasses.map(className => className.toUpperCase()));
+        const hasHomeroomAssignment = role === "GURU" && homeroomByKey.size > 0;
+        const availableClasses = hasHomeroomAssignment
+            ? result.classes.filter(className => homeroomByKey.has(className.toUpperCase()))
+            : result.classes;
+        if (hasHomeroomAssignment && availableClasses.length === 0) {
+            throw new Error("Kelas wali tidak ditemukan pada data kelas siswa.");
+        }
+        availableClasses.forEach(className => {
             const item = document.createElement("li");
             const button = document.createElement("button");
             button.type = "button";
             button.className = "staff-monitoring-class-button";
             button.textContent = className;
             button.setAttribute("aria-pressed", "false");
-            button.addEventListener("click", () => {
-                selectedMonitoringClass = className;
-                classControls.hidden = true;
-                studentView.hidden = false;
-                document.getElementById("staff-monitoring-student-title").textContent = `Siswa Kelas ${className}`;
-                document.getElementById("staff-monitoring-description").textContent = "Memuat data wali kelas dan guru BK...";
-                loadMonitoringStudents(className);
-            });
+            button.addEventListener("click", () => openMonitoringClass(className));
             item.appendChild(button);
             classList.appendChild(item);
         });
+        if (hasHomeroomAssignment && availableClasses.length === 1) {
+            status.textContent = `Kelas wali ${availableClasses[0]} ditemukan. Memuat daftar siswa...`;
+            openMonitoringClass(availableClasses[0]);
+            return;
+        }
         classControls.hidden = false;
-        status.textContent = `${result.classes.length} kelas tersedia. Pilih kelas untuk melihat siswanya.`;
+        status.textContent = hasHomeroomAssignment
+            ? `${availableClasses.length} kelas wali tersedia. Pilih kelas untuk melihat siswanya.`
+            : `${availableClasses.length} kelas tersedia. Pilih kelas untuk melihat siswanya.`;
     } catch (error) {
         status.textContent = error.message;
         status.classList.add("is-error");
     }
+}
+
+function openMonitoringClass(className) {
+    selectedMonitoringClass = className;
+    document.getElementById("staff-monitoring-class-controls").hidden = true;
+    document.getElementById("staff-monitoring-student-view").hidden = false;
+    document.getElementById("staff-monitoring-student-title").textContent = `Siswa Kelas ${className}`;
+    document.getElementById("staff-monitoring-description").textContent = "Memuat data wali kelas dan guru BK...";
+    loadMonitoringStudents(className);
+}
+
+function showAdminAlphaStudents() {
+    if (!currentUser || !["ADMIN", "SUPERADMIN"].includes(String(currentUser.role || "").toUpperCase())) {
+        showNotification("Pemantauan siswa alpa hanya tersedia untuk admin atau superadmin.", "error");
+        return;
+    }
+    setDashboardMenuView(true);
+    document.getElementById("staff-dashboard-note").hidden = true;
+    document.getElementById("staff-menu-grid").hidden = true;
+    document.getElementById("staff-directory-panel").hidden = true;
+    document.getElementById("staff-monitoring-panel").hidden = true;
+    document.getElementById("staff-event-panel").hidden = true;
+    document.getElementById("staff-holiday-panel").hidden = true;
+    document.getElementById("staff-early-dismissal-panel").hidden = true;
+    document.getElementById("staff-permission-panel").hidden = true;
+    document.getElementById("staff-alpha-students-panel").hidden = false;
+    document.getElementById("staff-monthly-summary-panel").hidden = true;
+    loadAlphaStudentClasses();
+}
+
+async function loadAlphaStudentClasses(forceRefresh = false) {
+    const status = document.getElementById("staff-alpha-students-status");
+    const classSelect = document.getElementById("staff-alpha-students-class");
+    const container = document.getElementById("staff-alpha-students-content");
+    const count = document.getElementById("staff-alpha-students-count");
+    status.textContent = "Memuat daftar kelas...";
+    status.classList.remove("is-error");
+    container.replaceChildren();
+    count.textContent = "Jumlah siswa alpa: -";
+
+    try {
+        const result = await getStaffMonitoringClassData(forceRefresh);
+        const selectedClass = classSelect.value;
+        classSelect.replaceChildren();
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Pilih kelas";
+        classSelect.appendChild(placeholder);
+        result.classes.forEach(className => {
+            const option = document.createElement("option");
+            option.value = className;
+            option.textContent = className;
+            classSelect.appendChild(option);
+        });
+        if (result.classes.includes(selectedClass)) classSelect.value = selectedClass;
+        status.textContent = result.classes.length
+            ? "Pilih kelas untuk melihat siswa berstatus A hari ini."
+            : "Belum ada data kelas.";
+    } catch (error) {
+        status.textContent = error.message;
+        status.classList.add("is-error");
+    }
+}
+
+async function loadAlphaStudents() {
+    if (!currentUser || !["ADMIN", "SUPERADMIN"].includes(String(currentUser.role || "").toUpperCase())) {
+        showNotification("Pemantauan siswa alpa hanya tersedia untuk admin atau superadmin.", "error");
+        return;
+    }
+    if (!currentUser.sessionToken) {
+        showNotification("Sesi login tidak valid. Silakan masuk kembali.", "error");
+        return;
+    }
+    const className = document.getElementById("staff-alpha-students-class").value;
+    const status = document.getElementById("staff-alpha-students-status");
+    const container = document.getElementById("staff-alpha-students-content");
+    const count = document.getElementById("staff-alpha-students-count");
+    container.replaceChildren();
+    if (!className) {
+        count.textContent = "Jumlah siswa alpa: -";
+        status.textContent = "Pilih kelas terlebih dahulu.";
+        return;
+    }
+
+    status.textContent = `Memuat data siswa alpa kelas ${className}...`;
+    status.classList.remove("is-error");
+    count.textContent = "Jumlah siswa alpa: menghitung...";
+    try {
+        const result = await apiCall("getAlphaStudents", "POST", {
+            sessionToken: currentUser.sessionToken,
+            kelas: className
+        });
+        if (!result || result.status !== "success" || !Array.isArray(result.students)) {
+            throw new Error(result && result.message ? result.message : "Format data siswa alpa tidak valid.");
+        }
+        renderMonitoringStudents(result.students, "staff-alpha-students-content");
+        count.textContent = `Jumlah siswa alpa: ${result.students.length} siswa`;
+        status.textContent = result.students.length
+            ? `${result.students.length} siswa berstatus A di kelas ${result.kelas || className} hari ini.`
+            : `Tidak ada siswa berstatus A di kelas ${result.kelas || className} hari ini.`;
+    } catch (error) {
+        count.textContent = "Jumlah siswa alpa: -";
+        status.textContent = error.message;
+        status.classList.add("is-error");
+    }
+}
+
+function showMonthlyAttendanceSummary() {
+    if (!currentUser || !["GURU", "ADMIN", "SUPERADMIN"].includes(String(currentUser.role || "").toUpperCase())) {
+        showNotification("Rekap bulanan hanya tersedia untuk akun staf.", "error");
+        return;
+    }
+    setDashboardMenuView(true);
+    document.getElementById("staff-dashboard-note").hidden = true;
+    document.getElementById("staff-menu-grid").hidden = true;
+    document.getElementById("staff-directory-panel").hidden = true;
+    document.getElementById("staff-event-panel").hidden = true;
+    document.getElementById("staff-holiday-panel").hidden = true;
+    document.getElementById("staff-early-dismissal-panel").hidden = true;
+    document.getElementById("staff-monitoring-panel").hidden = true;
+    document.getElementById("staff-alpha-students-panel").hidden = true;
+    document.getElementById("staff-permission-panel").hidden = true;
+    document.getElementById("staff-monthly-summary-panel").hidden = false;
+    initializeMonthlyAttendanceFilters();
+    loadMonthlyAttendanceClasses();
+}
+
+function initializeMonthlyAttendanceFilters() {
+    const monthSelect = document.getElementById("staff-monthly-summary-month");
+    const yearSelect = document.getElementById("staff-monthly-summary-year");
+    const monthNames = [
+        "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+        "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+    if (!monthSelect.options.length) {
+        monthNames.forEach((name, index) => {
+            const option = document.createElement("option");
+            option.value = String(index + 1);
+            option.textContent = name;
+            monthSelect.appendChild(option);
+        });
+    }
+    if (!yearSelect.options.length) {
+        const currentYear = new Date().getFullYear();
+        for (let year = currentYear; year >= currentYear - 10; year--) {
+            const option = document.createElement("option");
+            option.value = String(year);
+            option.textContent = String(year);
+            yearSelect.appendChild(option);
+        }
+    }
+    const today = new Date();
+    if (!monthSelect.value) monthSelect.value = String(today.getMonth() + 1);
+    if (!yearSelect.value) yearSelect.value = String(today.getFullYear());
+}
+
+async function loadMonthlyAttendanceClasses(forceRefresh = false) {
+    const status = document.getElementById("staff-monthly-summary-status");
+    const classSelect = document.getElementById("staff-monthly-summary-class");
+    const content = document.getElementById("staff-monthly-summary-content");
+    const note = document.getElementById("staff-monthly-summary-note");
+    status.textContent = "Memuat daftar kelas...";
+    status.classList.remove("is-error");
+    content.replaceChildren();
+    note.hidden = true;
+    try {
+        const result = await getStaffMonitoringClassData(forceRefresh);
+        const selectedClass = classSelect.value;
+        const classOptions = result.classes;
+        classSelect.replaceChildren();
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Pilih kelas";
+        classSelect.appendChild(placeholder);
+        classOptions.forEach(className => {
+            const option = document.createElement("option");
+            option.value = className;
+            option.textContent = className;
+            classSelect.appendChild(option);
+        });
+        const preferredClass = String(currentUser.role || "").toUpperCase() === "GURU"
+            ? result.homeroomClasses.find(className => classOptions.includes(className))
+            : "";
+        if (classOptions.includes(selectedClass)) {
+            classSelect.value = selectedClass;
+        } else if (preferredClass) {
+            classSelect.value = preferredClass;
+        }
+
+        if (!classOptions.length) {
+            status.textContent = "Belum ada data kelas.";
+        } else if (classSelect.value) {
+            await loadMonthlyAttendanceSummary();
+        } else {
+            status.textContent = "Pilih bulan, tahun, dan kelas untuk melihat rekap.";
+        }
+    } catch (error) {
+        status.textContent = error.message;
+        status.classList.add("is-error");
+    }
+}
+
+async function loadMonthlyAttendanceSummary() {
+    if (!currentUser || !["GURU", "ADMIN", "SUPERADMIN"].includes(String(currentUser.role || "").toUpperCase())) {
+        showNotification("Rekap bulanan hanya tersedia untuk akun staf.", "error");
+        return;
+    }
+    if (!currentUser.sessionToken) {
+        showNotification("Sesi login tidak valid. Silakan masuk kembali.", "error");
+        return;
+    }
+
+    const month = document.getElementById("staff-monthly-summary-month").value;
+    const year = document.getElementById("staff-monthly-summary-year").value;
+    const className = document.getElementById("staff-monthly-summary-class").value;
+    const status = document.getElementById("staff-monthly-summary-status");
+    const content = document.getElementById("staff-monthly-summary-content");
+    const note = document.getElementById("staff-monthly-summary-note");
+    content.replaceChildren();
+    note.hidden = true;
+    status.classList.remove("is-error");
+    if (!month || !year || !className) {
+        status.textContent = "Pilih bulan, tahun, dan kelas terlebih dahulu.";
+        return;
+    }
+
+    status.textContent = "Memuat rekap bulanan...";
+    status.classList.remove("is-error");
+    try {
+        const result = await apiCall("getMonthlyAttendanceSummary", "POST", {
+            sessionToken: currentUser.sessionToken,
+            bulan: Number(month),
+            tahun: Number(year),
+            kelas: className
+        });
+        const statusCodes = Object.keys(MONTHLY_ATTENDANCE_STATUS_LABELS);
+        const hasCompleteSummary = result && result.status === "success" &&
+            Array.isArray(result.records) && result.totals &&
+            statusCodes.every(code => typeof result.totals[code] === "number" &&
+                Number.isFinite(result.totals[code])) &&
+            result.records.every(student => statusCodes.every(code =>
+                typeof student[code] === "number" && Number.isFinite(student[code]))) &&
+            Number.isFinite(result.rataRataHadir) &&
+            Number.isFinite(result.totalHadir) &&
+            Number.isFinite(result.hariSekolah);
+        if (!hasCompleteSummary) {
+            throw new Error(result && result.message ? result.message : "Format rekap bulanan tidak valid.");
+        }
+        renderMonthlyAttendanceSummary(result, content, note);
+        status.textContent = `${result.records.length} siswa pada kelas ${result.kelas || className}.`;
+    } catch (error) {
+        status.textContent = error.message;
+        status.classList.add("is-error");
+    }
+}
+
+function renderMonthlyAttendanceSummary(summary, container, note) {
+    const table = document.createElement("table");
+    table.className = "staff-directory-table staff-monthly-summary-table";
+    const statusCodes = Object.keys(MONTHLY_ATTENDANCE_STATUS_LABELS);
+    const head = table.createTHead().insertRow();
+    ["NIS", "Nama", ...statusCodes].forEach(label => {
+        const cell = document.createElement("th");
+        cell.scope = "col";
+        cell.textContent = label;
+        if (MONTHLY_ATTENDANCE_STATUS_LABELS[label]) {
+            cell.title = MONTHLY_ATTENDANCE_STATUS_LABELS[label];
+            cell.setAttribute("aria-label", `${label}: ${MONTHLY_ATTENDANCE_STATUS_LABELS[label]}`);
+        }
+        head.appendChild(cell);
+    });
+
+    const body = table.createTBody();
+    if (summary.records.length) {
+        summary.records.forEach(student => {
+            const row = body.insertRow();
+            [student.nis, student.nama, ...statusCodes.map(status => student[status])].forEach(value => {
+                row.insertCell().textContent = String(value ?? "-");
+            });
+        });
+    } else {
+        const row = body.insertRow();
+        const cell = row.insertCell();
+        cell.colSpan = 2 + statusCodes.length;
+        cell.textContent = "Tidak ada data siswa pada kelas ini.";
+    }
+
+    if (summary.records.length) {
+        const totals = table.createTFoot().insertRow();
+        const label = totals.insertCell();
+        label.colSpan = 2;
+        label.textContent = "Total";
+        statusCodes.forEach(status => {
+            totals.insertCell().textContent = String(summary.totals[status] ?? 0);
+        });
+    }
+    container.replaceChildren(table);
+
+    const monthName = new Intl.DateTimeFormat("id-ID", { month: "long" })
+        .format(new Date(Number(summary.tahun), Number(summary.bulan) - 1, 1));
+    const average = Number(summary.rataRataHadir).toLocaleString("id-ID", { maximumFractionDigits: 2 });
+    note.textContent =
+        `Rata-rata H/P per hari sekolah pada ${monthName} ${summary.tahun}: ${average} siswa ` +
+        `(${summary.totalHadir} total H/P dalam ${summary.hariSekolah} hari sekolah). ` +
+        "Kode: H=Hadir, A=Alpa, I=Izin, S=Sakit, T=Terlambat, TAP=Tidak Absen Pulang, " +
+        "TAM=Tidak Absen Masuk, TAPT=Tidak Absen Pulang & Terlambat, P=Pulang, " +
+        "PT=Pulang & Terlambat, HB=Hari Besar, OFF=Libur.";
+    note.hidden = false;
 }
 
 function showMonitoringClasses() {
@@ -1683,6 +2122,8 @@ function showPermissionManagement() {
     document.getElementById("staff-event-panel").hidden = true;
     document.getElementById("staff-holiday-panel").hidden = true;
     document.getElementById("staff-early-dismissal-panel").hidden = true;
+    document.getElementById("staff-alpha-students-panel").hidden = true;
+    document.getElementById("staff-monthly-summary-panel").hidden = true;
     document.getElementById("staff-permission-panel").hidden = false;
     const dateInput = document.getElementById("staff-permission-date");
     if (!dateInput.value) {
@@ -1709,16 +2150,23 @@ async function loadPermissionData() {
     const dateFilter = document.getElementById("staff-permission-date").value;
     document.getElementById("staff-permission-date-display").textContent =
         formatPermissionDate(dateFilter) || "Semua tanggal";
-    const selectedClass = classSelect.value;
     status.textContent = "Memuat data izin...";
     status.classList.remove("is-error");
     count.textContent = "Jumlah siswa izin: menghitung...";
     container.replaceChildren();
 
     try {
+        const role = String(currentUser.role || "").toUpperCase();
+        const monitoringClassData = role === "GURU"
+            ? await getStaffMonitoringClassData()
+            : null;
+        const homeroomClasses = monitoringClassData ? monitoringClassData.homeroomClasses : [];
+        const selectedClass = !staffPermissionClassFilterInitialized && homeroomClasses.length
+            ? homeroomClasses[0]
+            : classSelect.value;
         const result = await apiCall("getPermissionData", "POST", {
             sessionToken: currentUser.sessionToken,
-            tanggal: document.getElementById("staff-permission-date").value,
+            tanggal: dateFilter,
             kelas: selectedClass
         });
         if (!result || result.status !== "success" ||
@@ -1731,13 +2179,16 @@ async function loadPermissionData() {
         allClassesOption.value = "";
         allClassesOption.textContent = "Semua kelas";
         classSelect.appendChild(allClassesOption);
-        result.classes.forEach(className => {
+        const availableClasses = new Set(result.classes);
+        homeroomClasses.forEach(className => availableClasses.add(className));
+        Array.from(availableClasses).sort((first, second) => first.localeCompare(second, "id")).forEach(className => {
             const option = document.createElement("option");
             option.value = className;
             option.textContent = className;
             classSelect.appendChild(option);
         });
-        if (result.classes.includes(selectedClass)) classSelect.value = selectedClass;
+        if (availableClasses.has(selectedClass)) classSelect.value = selectedClass;
+        staffPermissionClassFilterInitialized = true;
 
         renderPermissionData(result.records);
         count.textContent = `Jumlah siswa izin: ${countUniquePermissionStudents(result.records)} siswa`;
@@ -1844,8 +2295,8 @@ function getPermissionShortCode(value) {
     return initials || "-";
 }
 
-function renderMonitoringStudents(students) {
-    const container = document.getElementById("staff-monitoring-students");
+function renderMonitoringStudents(students, containerId = "staff-monitoring-students") {
+    const container = document.getElementById(containerId);
     container.replaceChildren();
     if (!students.length) return;
 
@@ -1899,7 +2350,9 @@ function showGuruManagement() {
     document.getElementById("staff-holiday-panel").hidden = true;
     document.getElementById("staff-early-dismissal-panel").hidden = true;
     document.getElementById("staff-monitoring-panel").hidden = true;
+    document.getElementById("staff-alpha-students-panel").hidden = true;
     document.getElementById("staff-permission-panel").hidden = true;
+    document.getElementById("staff-monthly-summary-panel").hidden = true;
     loadGuruDirectory();
 }
 

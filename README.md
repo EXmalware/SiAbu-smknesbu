@@ -185,6 +185,8 @@ Isi `TANGGAL` dengan nilai tanggal Google Sheets dan `NAMA KEGIATAN` dengan nama
 
 Backend pada proyek ini membaca catatan kehadiran dari sheet `ABSEN`, tetapi tidak memiliki endpoint untuk menulis catatan absensi. Karena itu, penandaan `HB` dilakukan saat data ditampilkan; pencatat absensi yang mengisi sheet tetap perlu mengirim satu catatan masuk pada tanggal event.
 
+Menu **Rekap Bulanan** tersedia untuk guru, admin, dan superadmin. Pilih bulan, tahun, dan kelas untuk melihat jumlah setiap status per siswa (`H`, `A`, `I`, `S`, `T`, `TAP`, `TAM`, `TAPT`, `P`, `PT`, `HB`, dan `OFF`); header tabel memakai kode singkat, dengan kepanjangannya tersedia di keterangan bawah tabel. Catatan juga menampilkan rata-rata jumlah hadir (`H`/`P`) per hari sekolah sampai hari ini untuk bulan berjalan. Hari sekolah mencakup Senin–Jumat kecuali tanggal pada `HARILIBUR`, serta tanggal `EVENT`; hari akhir pekan dan libur dihitung sebagai `OFF` jika tidak ada status khusus.
+
 ### Sheet PULANGCEPAT
 | TANGGAL | NAMA KEGIATAN |
 |---------|---------------|

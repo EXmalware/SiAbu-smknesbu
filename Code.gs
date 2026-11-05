@@ -150,6 +150,22 @@
           );
           break;
 
+        case 'getAlphaStudents':
+          response = getAlphaStudents(
+            postData.sessionToken,
+            postData.kelas
+          );
+          break;
+
+        case 'getMonthlyAttendanceSummary':
+          response = getMonthlyAttendanceSummary(
+            postData.sessionToken,
+            postData.bulan,
+            postData.tahun,
+            postData.kelas
+          );
+          break;
+
         case 'getTodayAttendanceSummary':
           response = getTodayAttendanceSummary(postData.sessionToken);
           break;
@@ -365,7 +381,11 @@
       cache.remove("staff_session_" + token);
       throw new Error("Akun tidak memiliki izin untuk memantau data siswa.");
     }
-    return { role, nip: session.nip };
+    return {
+      role,
+      nip: session.nip,
+      nama: String(data.rows[matchingRows[0]][data.columns.nama] || "").trim()
+    };
   }
 
   function revokeStaffSession(sessionToken) {
@@ -624,8 +644,9 @@
 
   function getMonitoringClasses(sessionToken) {
     try {
-      authenticateMonitoringStaff(sessionToken);
-      const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_SISWA);
+      const staff = authenticateMonitoringStaff(sessionToken);
+      const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+      const sheet = spreadsheet.getSheetByName(SHEET_SISWA);
       if (!sheet) throw new Error("Sheet SISWA tidak ditemukan.");
       const lastColumn = sheet.getLastColumn();
       if (lastColumn === 0) throw new Error("Sheet SISWA tidak memiliki header.");
@@ -645,7 +666,39 @@
         }
       });
       const classes = Array.from(classesByKey.values()).sort((a, b) => a.localeCompare(b, "id"));
-      return { status: "success", classes };
+
+      const homeroomClasses = [];
+      if (staff.role === "GURU" && staff.nama) {
+        const classSheet = spreadsheet.getSheetByName("BK");
+        if (!classSheet) throw new Error("Sheet BK tidak ditemukan.");
+        const classLastColumn = classSheet.getLastColumn();
+        if (classLastColumn === 0) throw new Error("Sheet BK tidak memiliki header.");
+        const classHeaders = classSheet.getRange(1, 1, 1, classLastColumn).getDisplayValues()[0]
+          .map(header => String(header).trim().toUpperCase().replace(/\s+/g, ""));
+        const classColumnIndex = classHeaders.indexOf("KELAS");
+        const homeroomTeacherColumnIndex = classHeaders.indexOf("WALIKELAS");
+        if (classColumnIndex === -1 || homeroomTeacherColumnIndex === -1) {
+          throw new Error("Kolom KELAS dan WALIKELAS wajib tersedia di sheet BK.");
+        }
+        const classLastRow = classSheet.getLastRow();
+        const classRows = classLastRow > 1
+          ? classSheet.getRange(2, 1, classLastRow - 1, classLastColumn).getDisplayValues()
+          : [];
+        const normalizeName = name => String(name || "").trim().replace(/\s+/g, " ").toUpperCase();
+        const staffName = normalizeName(staff.nama);
+        const homeroomClassesByKey = new Map();
+        classRows.forEach(row => {
+          if (normalizeName(row[homeroomTeacherColumnIndex]) !== staffName) return;
+          const className = String(row[classColumnIndex] || "").trim();
+          if (className && !homeroomClassesByKey.has(className.toUpperCase())) {
+            homeroomClassesByKey.set(className.toUpperCase(), className);
+          }
+        });
+        homeroomClasses.push(...homeroomClassesByKey.values());
+        homeroomClasses.sort((a, b) => a.localeCompare(b, "id"));
+      }
+
+      return { status: "success", classes, homeroomClasses };
     } catch (error) {
       Logger.log("Get monitoring classes error: " + error.message);
       return { status: "error", message: error.message };
@@ -812,6 +865,241 @@
       };
     } catch (error) {
       Logger.log("Get monitoring students error: " + error.message);
+      return { status: "error", message: error.message };
+    }
+  }
+
+  function getAlphaStudents(sessionToken, requestedClass) {
+    try {
+      const session = authenticateMonitoringStaff(sessionToken);
+      if (!["ADMIN", "SUPERADMIN"].includes(session.role)) {
+        throw new Error("Hanya admin atau superadmin yang dapat memantau siswa alpa.");
+      }
+      const className = String(requestedClass || "").trim();
+      if (!className) throw new Error("Pilih kelas terlebih dahulu.");
+
+      const result = getMonitoringStudents(sessionToken, className);
+      if (result.status !== "success") {
+        throw new Error(result.message || "Data pemantauan siswa gagal dimuat.");
+      }
+      return {
+        status: "success",
+        kelas: result.kelas,
+        students: result.students.filter(student =>
+          String(student.keterangan || "").trim().toUpperCase() === "A"
+        )
+      };
+    } catch (error) {
+      Logger.log("Get alpha students error: " + error.message);
+      return { status: "error", message: error.message };
+    }
+  }
+
+  function getMonthlyAttendanceSummary(sessionToken, requestedMonth, requestedYear, requestedClass) {
+    try {
+      const session = authenticateMonitoringStaff(sessionToken);
+      if (!["GURU", "ADMIN", "SUPERADMIN"].includes(session.role)) {
+        throw new Error("Hanya akun staf yang dapat melihat rekap bulanan.");
+      }
+
+      const month = Number(requestedMonth);
+      const year = Number(requestedYear);
+      const className = String(requestedClass || "").trim();
+      if (!Number.isInteger(month) || month < 1 || month > 12) {
+        throw new Error("Bulan rekap tidak valid.");
+      }
+      if (!Number.isInteger(year) || year < 2000 || year > new Date().getFullYear()) {
+        throw new Error("Tahun rekap tidak valid.");
+      }
+      if (!className) throw new Error("Pilih kelas terlebih dahulu.");
+
+      const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+      const timeZone = spreadsheet.getSpreadsheetTimeZone();
+      const siswaSheet = spreadsheet.getSheetByName(SHEET_SISWA);
+      if (!siswaSheet) throw new Error("Sheet SISWA tidak ditemukan.");
+      const siswaLastColumn = siswaSheet.getLastColumn();
+      if (siswaLastColumn === 0) throw new Error("Sheet SISWA tidak memiliki header.");
+      const siswaHeaders = siswaSheet.getRange(1, 1, 1, siswaLastColumn).getDisplayValues()[0]
+        .map(header => String(header).trim().toUpperCase());
+      const siswaColumns = {
+        nis: siswaHeaders.indexOf("NIS"),
+        nama: siswaHeaders.indexOf("NAMA"),
+        kelas: siswaHeaders.indexOf("KELAS")
+      };
+      const missingStudentColumns = Object.keys(siswaColumns)
+        .filter(column => siswaColumns[column] === -1);
+      if (missingStudentColumns.length) {
+        throw new Error("Kolom wajib tidak ditemukan di sheet SISWA: " + missingStudentColumns.join(", "));
+      }
+      const siswaLastRow = siswaSheet.getLastRow();
+      const siswaRange = siswaLastRow > 1
+        ? siswaSheet.getRange(2, 1, siswaLastRow - 1, siswaLastColumn)
+        : null;
+      const siswaRows = siswaRange ? siswaRange.getDisplayValues() : [];
+      const studentsByNis = new Map();
+      const attendanceStatuses = ["H", "A", "I", "S", "T", "TAP", "TAM", "TAPT", "P", "PT", "HB", "OFF"];
+      const attendanceStatusAliases = {
+        HADIR: "H",
+        ALPA: "A",
+        ALPHA: "A",
+        ABSEN: "A",
+        IZIN: "I",
+        SAKIT: "S",
+        TERLAMBAT: "T",
+        "BELUM ABSEN": "A",
+        PULANG: "P",
+        LIBUR: "OFF",
+        "HARI BESAR": "HB",
+        "TIDAK ABSEN PULANG": "TAP",
+        "TIDAK ABSEN MASUK": "TAM",
+        "TIDAK ABSEN PULANG & TERLAMBAT": "TAPT",
+        "PULANG & TERLAMBAT": "PT"
+      };
+      siswaRows.forEach(row => {
+        const nis = String(row[siswaColumns.nis] || "").trim();
+        const studentClass = String(row[siswaColumns.kelas] || "").trim();
+        if (!nis || studentClass.toUpperCase() !== className.toUpperCase() || studentsByNis.has(nis)) return;
+        const student = {
+          nis,
+          nama: String(row[siswaColumns.nama] || "").trim(),
+          kelas: studentClass
+        };
+        attendanceStatuses.forEach(status => {
+          student[status] = 0;
+        });
+        studentsByNis.set(nis, student);
+      });
+
+      const lastDayNumber = new Date(Date.UTC(year, month, 0)).getUTCDate();
+      const lastDayKey = `${year}-${String(month).padStart(2, "0")}-${String(lastDayNumber).padStart(2, "0")}`;
+      const todayKey = Utilities.formatDate(new Date(), timeZone, "yyyy-MM-dd");
+      const throughDayKey = todayKey < lastDayKey ? todayKey : lastDayKey;
+      const monthDates = [];
+      const attendanceDates = [];
+      const holidayDates = getHolidayDates();
+      const eventDates = getEventDateKeys(spreadsheet);
+      for (let day = 1; day <= lastDayNumber; day++) {
+        const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        if (dateKey > throughDayKey) break;
+        monthDates.push(dateKey);
+        const weekday = new Date(`${dateKey}T12:00:00Z`).getUTCDay();
+        if (eventDates.has(dateKey) ||
+          ((weekday !== 0 && weekday !== 6) && !holidayDates.has(dateKey))) {
+          attendanceDates.push(dateKey);
+        }
+      }
+      const monthDateSet = new Set(monthDates);
+      const attendanceDateSet = new Set(attendanceDates);
+
+      const absenSheet = spreadsheet.getSheetByName(SHEET_ABSEN);
+      if (!absenSheet) throw new Error("Sheet ABSEN tidak ditemukan.");
+      const absenLastColumn = absenSheet.getLastColumn();
+      if (absenLastColumn === 0) throw new Error("Sheet ABSEN tidak memiliki header.");
+      const absenHeaders = absenSheet.getRange(1, 1, 1, absenLastColumn).getDisplayValues()[0]
+        .map(header => String(header).trim().toUpperCase());
+      const absenColumns = {
+        nis: absenHeaders.indexOf("NIS"),
+        tanggal: absenHeaders.indexOf("TANGGAL"),
+        keterangan: absenHeaders.indexOf("KETERANGAN")
+      };
+      const missingAttendanceColumns = Object.keys(absenColumns)
+        .filter(column => absenColumns[column] === -1);
+      if (missingAttendanceColumns.length) {
+        throw new Error("Kolom wajib tidak ditemukan di sheet ABSEN: " + missingAttendanceColumns.join(", "));
+      }
+      const absenLastRow = absenSheet.getLastRow();
+      const absenRange = absenLastRow > 1
+        ? absenSheet.getRange(2, 1, absenLastRow - 1, absenLastColumn)
+        : null;
+      const absenRows = absenRange ? absenRange.getValues() : [];
+      const attendanceByDateNis = new Map();
+      absenRows.forEach(row => {
+        const nis = String(row[absenColumns.nis] || "").trim();
+        const attendanceDate = row[absenColumns.tanggal];
+        if (!studentsByNis.has(nis) || !(attendanceDate instanceof Date) ||
+          Number.isNaN(attendanceDate.getTime())) return;
+        const dateKey = Utilities.formatDate(attendanceDate, timeZone, "yyyy-MM-dd");
+        if (!monthDateSet.has(dateKey)) return;
+        const rawStatus = String(row[absenColumns.keterangan] || "").trim().toUpperCase();
+        attendanceByDateNis.set(`${dateKey}:${nis}`, attendanceStatusAliases[rawStatus] || rawStatus);
+      });
+
+      const permissionByDateNis = new Map();
+      const izinSheet = spreadsheet.getSheetByName(SHEET_IZIN);
+      if (izinSheet && izinSheet.getLastColumn() > 0) {
+        const izinLastColumn = izinSheet.getLastColumn();
+        const izinHeaders = izinSheet.getRange(1, 1, 1, izinLastColumn).getDisplayValues()[0]
+          .map(header => String(header).trim().toUpperCase());
+        const izinColumns = {
+          nis: izinHeaders.indexOf("NIS"),
+          tanggal: izinHeaders.indexOf("TANGGAL"),
+          keterangan: izinHeaders.indexOf("KETERANGAN")
+        };
+        if (izinColumns.nis !== -1 && izinColumns.tanggal !== -1) {
+          const izinLastRow = izinSheet.getLastRow();
+          const izinRange = izinLastRow > 1
+            ? izinSheet.getRange(2, 1, izinLastRow - 1, izinLastColumn)
+            : null;
+          const izinRows = izinRange ? izinRange.getValues() : [];
+          izinRows.forEach(row => {
+            const nis = String(row[izinColumns.nis] || "").trim();
+            const izinDate = row[izinColumns.tanggal];
+            if (!studentsByNis.has(nis) || !(izinDate instanceof Date) ||
+              Number.isNaN(izinDate.getTime())) return;
+            const dateKey = Utilities.formatDate(izinDate, timeZone, "yyyy-MM-dd");
+            if (!monthDateSet.has(dateKey)) return;
+            const detail = izinColumns.keterangan === -1
+              ? "I"
+              : String(row[izinColumns.keterangan] || "I").trim().toUpperCase();
+            permissionByDateNis.set(`${dateKey}:${nis}`, detail.includes("S") ? "S" : "I");
+          });
+        }
+      }
+
+      let totalHadir = 0;
+      monthDates.forEach(dateKey => {
+        studentsByNis.forEach((student, nis) => {
+          const key = `${dateKey}:${nis}`;
+          let status;
+          if (eventDates.has(dateKey)) {
+            status = attendanceByDateNis.has(key) ? "HB" : "A";
+          } else if (attendanceByDateNis.has(key)) {
+            status = attendanceByDateNis.get(key);
+          } else if (permissionByDateNis.has(key)) {
+            status = permissionByDateNis.get(key);
+          } else {
+            status = attendanceDateSet.has(dateKey) ? "A" : "OFF";
+          }
+
+          if (attendanceStatuses.includes(status)) {
+            student[status]++;
+            if (status === "H" || status === "P") totalHadir++;
+          }
+        });
+      });
+
+      const records = Array.from(studentsByNis.values())
+        .sort((first, second) => first.nama.localeCompare(second.nama, "id"));
+      const totals = records.reduce((summary, student) => {
+        attendanceStatuses.forEach(status => {
+          summary[status] += student[status];
+        });
+        return summary;
+      }, Object.fromEntries(attendanceStatuses.map(status => [status, 0])));
+
+      return {
+        status: "success",
+        bulan: month,
+        tahun: year,
+        kelas: records[0] ? records[0].kelas : className,
+        records,
+        totals,
+        totalHadir,
+        hariSekolah: attendanceDates.length,
+        rataRataHadir: attendanceDates.length ? Math.round((totalHadir / attendanceDates.length) * 100) / 100 : 0
+      };
+    } catch (error) {
+      Logger.log("Get monthly attendance summary error: " + error.message);
       return { status: "error", message: error.message };
     }
   }

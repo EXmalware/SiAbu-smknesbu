@@ -10,7 +10,7 @@ const MOCK_STUDENT_ACCOUNTS = [
     { nis: "24111005", nama: "Bima Mock", kelas: "XI RPL 2" }
 ];
 const MOCK_CLASS_ADVISORS = {
-    "XII RPL 1": { waliKelas: "Wali Kelas Mock", guruBk: "Guru BK Mock" },
+    "XII RPL 1": { waliKelas: "Guru Mock", guruBk: "Guru BK Mock" },
     "XI RPL 2": { waliKelas: "Wali Kelas Mock", guruBk: "Guru BK Mock" }
 };
 
@@ -169,12 +169,19 @@ const MOCK_DATA = {
         return { status: "success", message: "Role guru berhasil diperbarui.", role: nextRole };
     },
     getMonitoringClasses: ({ sessionToken } = {}) => {
-        if (!authenticateMockMonitoringStaff(sessionToken)) {
+        const staff = authenticateMockMonitoringStaff(sessionToken);
+        if (!staff) {
             return { status: "error", message: "Sesi login tidak valid. Silakan masuk kembali." };
         }
+        const homeroomClasses = staff.role === "GURU"
+            ? Object.entries(MOCK_CLASS_ADVISORS)
+                .filter(([, advisor]) => advisor.waliKelas.trim().toUpperCase() === staff.nama.trim().toUpperCase())
+                .map(([className]) => className)
+            : [];
         return {
             status: "success",
-            classes: [...new Set(MOCK_STUDENT_ACCOUNTS.map(student => student.kelas))].sort()
+            classes: [...new Set(MOCK_STUDENT_ACCOUNTS.map(student => student.kelas))].sort(),
+            homeroomClasses
         };
     },
     getMonitoringStudents: ({ sessionToken, kelas } = {}) => {
@@ -186,6 +193,7 @@ const MOCK_DATA = {
         const today = new Date();
         const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
         const isEventDay = MOCK_EVENTS.some(eventItem => eventItem.date === todayKey);
+        const isAfterAttendanceCutoff = today.getHours() >= 15;
         const students = MOCK_STUDENT_ACCOUNTS
             .filter(student => student.kelas.toUpperCase() === selectedClass.toUpperCase())
             .map(({ nis, nama }) => ({
@@ -195,7 +203,7 @@ const MOCK_DATA = {
                 jamPulang: isEventDay ? "-" : nis === "24111003" ? "15:02" : "-",
                 keterangan: isEventDay
                     ? nis === "24111003" ? "HB" : "A"
-                    : nis === "24111003" ? "H" : "Belum absen"
+                    : nis === "24111003" ? "H" : isAfterAttendanceCutoff ? "A" : "Belum absen"
             }));
         const classAdvisors = MOCK_CLASS_ADVISORS[selectedClass.toUpperCase()] || {};
         return {
@@ -204,6 +212,96 @@ const MOCK_DATA = {
             waliKelas: classAdvisors.waliKelas || "-",
             guruBk: classAdvisors.guruBk || "-",
             students
+        };
+    },
+    getAlphaStudents: ({ sessionToken, kelas } = {}) => {
+        const staff = authenticateMockMonitoringStaff(sessionToken);
+        if (!staff || !["ADMIN", "SUPERADMIN"].includes(staff.role)) {
+            return { status: "error", message: "Pemantauan siswa alpa hanya tersedia untuk admin atau superadmin." };
+        }
+        const className = String(kelas || "").trim();
+        if (!className) return { status: "error", message: "Pilih kelas terlebih dahulu." };
+        const result = MOCK_DATA.getMonitoringStudents({ sessionToken, kelas: className });
+        if (result.status !== "success") return result;
+        return {
+            status: "success",
+            kelas: result.kelas,
+            students: result.students.filter(student => String(student.keterangan || "").toUpperCase() === "A")
+        };
+    },
+    getMonthlyAttendanceSummary: ({ sessionToken, bulan, tahun, kelas } = {}) => {
+        if (!authenticateMockMonitoringStaff(sessionToken)) {
+            return { status: "error", message: "Sesi login tidak valid. Silakan masuk kembali." };
+        }
+        const month = Number(bulan);
+        const year = Number(tahun);
+        const className = String(kelas || "").trim();
+        if (!Number.isInteger(month) || month < 1 || month > 12 ||
+            !Number.isInteger(year) || year < 2000 || year > new Date().getFullYear()) {
+            return { status: "error", message: "Bulan atau tahun rekap tidak valid." };
+        }
+        if (!className) return { status: "error", message: "Pilih kelas terlebih dahulu." };
+
+        const now = new Date();
+        const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+        const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        const eventDates = new Set(MOCK_EVENTS.map(item => item.date));
+        const holidayDates = new Set(MOCK_HOLIDAYS.map(item => item.date));
+        const monthDates = [];
+        const schoolDates = [];
+        for (let day = 1; day <= new Date(Date.UTC(year, month, 0)).getUTCDate(); day++) {
+            const dateKey = `${monthKey}-${String(day).padStart(2, "0")}`;
+            if (dateKey > todayKey) break;
+            monthDates.push(dateKey);
+            const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+            if (eventDates.has(dateKey) ||
+                ((weekday !== 0 && weekday !== 6) && !holidayDates.has(dateKey))) {
+                schoolDates.push(dateKey);
+            }
+        }
+
+        const attendanceStatuses = ["H", "A", "I", "S", "T", "TAP", "TAM", "TAPT", "P", "PT", "HB", "OFF"];
+        const records = MOCK_STUDENT_ACCOUNTS
+            .filter(student => student.kelas.toUpperCase() === className.toUpperCase())
+            .map((student, studentIndex) => {
+                const record = { nis: student.nis, nama: student.nama, kelas: student.kelas };
+                let schoolDayIndex = 0;
+                attendanceStatuses.forEach(status => {
+                    record[status] = 0;
+                });
+                monthDates.forEach(dateKey => {
+                    let status;
+                    if (eventDates.has(dateKey)) status = studentIndex % 2 === 0 ? "HB" : "A";
+                    else if (holidayDates.has(dateKey) || [0, 6].includes(new Date(`${dateKey}T12:00:00Z`).getUTCDay())) {
+                        status = "OFF";
+                    } else {
+                        const schoolStatuses = ["H", "A", "I", "S", "T", "TAP", "TAM", "TAPT", "P", "PT"];
+                        status = schoolStatuses[(schoolDayIndex + studentIndex) % schoolStatuses.length];
+                        schoolDayIndex++;
+                    }
+
+                    if (attendanceStatuses.includes(status)) record[status]++;
+                });
+                return record;
+            })
+            .sort((first, second) => first.nama.localeCompare(second.nama, "id"));
+        const totals = records.reduce((result, student) => {
+            attendanceStatuses.forEach(status => {
+                result[status] += student[status];
+            });
+            return result;
+        }, Object.fromEntries(attendanceStatuses.map(status => [status, 0])));
+        const totalHadir = totals.H + totals.P;
+        return {
+            status: "success",
+            bulan: month,
+            tahun: year,
+            kelas: records[0] ? records[0].kelas : className,
+            records,
+            totals,
+            totalHadir,
+            hariSekolah: schoolDates.length,
+            rataRataHadir: schoolDates.length ? Math.round((totalHadir / schoolDates.length) * 100) / 100 : 0
         };
     },
     getTodayAttendanceSummary: ({ sessionToken } = {}) => {
@@ -275,7 +373,7 @@ const MOCK_DATA = {
                 nis: record.nis,
                 keterangan: record.keterangan
             })),
-            classes: [...new Set(mockRecords.map(record => record.kelas))].sort()
+            classes: [...new Set(MOCK_STUDENT_ACCOUNTS.map(student => student.kelas))].sort()
         };
     },
     getEventDates: ({ sessionToken } = {}) => {
