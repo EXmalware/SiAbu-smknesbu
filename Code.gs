@@ -84,6 +84,168 @@
     }
   }
 
+  function processLog(logData, scannerPin) {
+    if (!Array.isArray(logData) || logData.length === 0 || logData.length > 200) {
+      throw new Error("Batch scan harus berisi 1 sampai 200 data.");
+    }
+    const configuredPin = PropertiesService.getScriptProperties().getProperty("SCANNER_PIN");
+    if (!configuredPin || String(scannerPin || "") !== configuredPin) {
+      throw new Error("PIN scanner tidak valid atau belum dikonfigurasi.");
+    }
+
+    const logs = logData.map(log => {
+      const nis = String(log && log.nis || "").trim();
+      const timestamp = new Date(log && log.timestamp);
+      if (!/^\d{8}$/.test(nis) || Number.isNaN(timestamp.getTime())) {
+        throw new Error("Data scan tidak valid. NIS harus 8 digit dan waktu harus valid.");
+      }
+      const id = String(log && log.id || `${nis}:${timestamp.toISOString()}`);
+      return { id, nis, timestamp };
+    }).sort((left, right) => left.timestamp - right.timestamp);
+
+    const lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try {
+      const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+      const absenSheet = spreadsheet.getSheetByName(SHEET_ABSEN);
+      const siswaSheet = spreadsheet.getSheetByName(SHEET_SISWA);
+      if (!absenSheet || !siswaSheet) throw new Error("Sheet ABSEN atau SISWA tidak ditemukan.");
+
+      const timeZone = spreadsheet.getSpreadsheetTimeZone();
+      const eventDates = getEventDateKeys(spreadsheet);
+      const siswa = getSiswaData(siswaSheet);
+      const studentNames = new Map(siswa.rows.map(row => [
+        String(row[siswa.columns.nis] || "").trim(),
+        String(row[siswa.columns.nama] || "").trim()
+      ]));
+      const validNis = new Set(studentNames.keys());
+      const unknownNis = [...new Set(logs.filter(log => !validNis.has(log.nis)).map(log => log.nis))];
+      if (unknownNis.length) throw new Error("NIS tidak terdaftar: " + unknownNis.join(", "));
+
+      const lastColumn = absenSheet.getLastColumn();
+      const headers = absenSheet.getRange(1, 1, 1, lastColumn).getDisplayValues()[0]
+        .map(header => String(header).trim().toUpperCase());
+      const columns = {
+        id: headers.indexOf("ID"),
+        tanggal: headers.indexOf("TANGGAL"),
+        jamMasuk: headers.indexOf("JAM MASUK"),
+        jamPulang: headers.indexOf("JAM PULANG"),
+        nis: headers.indexOf("NIS"),
+        keterangan: headers.indexOf("KETERANGAN")
+      };
+      const missingColumns = Object.keys(columns).filter(key => columns[key] === -1);
+      if (missingColumns.length) throw new Error("Kolom wajib tidak ditemukan di sheet ABSEN: " + missingColumns.join(", "));
+
+      const lastRow = absenSheet.getLastRow();
+      const rows = lastRow > 1 ? absenSheet.getRange(2, 1, lastRow - 1, lastColumn).getValues() : [];
+      const entries = Object.create(null);
+      rows.forEach((row, index) => {
+        const dateValue = row[columns.tanggal];
+        const nis = String(row[columns.nis] || "").trim();
+        if (!(dateValue instanceof Date) || !nis) return;
+        const dayKey = Utilities.formatDate(dateValue, timeZone, "yyyy-MM-dd");
+        entries[`${dayKey}|${nis}`] = { row, rowNumber: index + 2, isNew: false };
+      });
+
+      const newRows = [];
+      const updatedEntries = new Set();
+      const acknowledgedIds = [];
+      const recordedIds = [];
+      const recordedScans = [];
+      const skippedDates = new Set();
+      logs.forEach(log => {
+        const dayKey = Utilities.formatDate(log.timestamp, timeZone, "yyyy-MM-dd");
+        const dateParts = dayKey.split("-").map(Number);
+        const dayOfWeek = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2])).getUTCDay();
+        const isEventDay = eventDates.has(dayKey);
+        if ((dayOfWeek === 0 || dayOfWeek === 6) && !isEventDay) {
+          skippedDates.add(dayKey);
+          acknowledgedIds.push(log.id);
+          return;
+        }
+
+        const key = `${dayKey}|${log.nis}`;
+        let entry = entries[key];
+        if (!entry) {
+          const row = Array(lastColumn).fill("");
+          row[columns.id] = lastRow + newRows.length + 1;
+          row[columns.tanggal] = log.timestamp;
+          row[columns.nis] = log.nis;
+          entry = { row, rowNumber: null, isNew: true };
+          entries[key] = entry;
+          newRows.push(row);
+        }
+
+        if (isEventDay) {
+          entry.row[columns.jamMasuk] = "";
+          entry.row[columns.jamPulang] = "";
+          entry.row[columns.keterangan] = "HB";
+        } else {
+          const clock = Utilities.formatDate(log.timestamp, timeZone, "HH:mm:ss").split(":").map(Number);
+          const scanSeconds = clock[0] * 3600 + clock[1] * 60 + clock[2];
+          const isMasuk = scanSeconds <= 9 * 3600 + 30 * 60 + 59;
+          const isPulang = scanSeconds >= 9 * 3600 + 31 * 60;
+          const isFriday = dayOfWeek === 5;
+          const jamPulangIdeal = isFriday ? 11 * 3600 + 25 * 60 : 15 * 3600 + 25 * 60;
+
+          if (isMasuk) {
+            const current = entry.row[columns.jamMasuk];
+            if (!current || log.timestamp < new Date(current)) entry.row[columns.jamMasuk] = log.timestamp;
+          } else if (isPulang) {
+            const current = entry.row[columns.jamPulang];
+            if (!current || log.timestamp > new Date(current)) entry.row[columns.jamPulang] = log.timestamp;
+          }
+
+          const jamMasuk = entry.row[columns.jamMasuk] ? scannerTimeSeconds(entry.row[columns.jamMasuk], timeZone) : null;
+          const jamPulang = entry.row[columns.jamPulang] ? scannerTimeSeconds(entry.row[columns.jamPulang], timeZone) : null;
+          entry.row[columns.keterangan] = scannerCalculateKeterangan(jamMasuk, jamPulang, 7 * 3600 + 59, jamPulangIdeal);
+        }
+
+        if (!entry.isNew) updatedEntries.add(entry);
+        acknowledgedIds.push(log.id);
+        recordedIds.push(log.id);
+        recordedScans.push({ id: log.id, nama: studentNames.get(log.nis) || "" });
+      });
+
+      updatedEntries.forEach(entry => {
+        absenSheet.getRange(entry.rowNumber, 1, 1, lastColumn).setValues([entry.row]);
+      });
+      if (newRows.length) {
+        absenSheet.getRange(lastRow + 1, 1, newRows.length, lastColumn).setValues(newRows);
+      }
+
+      return {
+        status: "success",
+        message: skippedDates.size
+          ? `Scan diproses; tanggal libur dilewati: ${[...skippedDates].join(", ")}.`
+          : `${acknowledgedIds.length} scan berhasil diproses.`,
+        acknowledgedIds,
+        recordedIds,
+        recordedScans,
+        skippedDates: [...skippedDates]
+      };
+    } finally {
+      lock.releaseLock();
+    }
+  }
+
+  function scannerTimeSeconds(value, timeZone) {
+    const clock = Utilities.formatDate(new Date(value), timeZone, "HH:mm:ss").split(":").map(Number);
+    return clock[0] * 3600 + clock[1] * 60 + clock[2];
+  }
+
+  function scannerCalculateKeterangan(jamMasuk, jamPulang, jamMasukIdeal, jamPulangIdeal) {
+    const masukTepat = jamMasuk !== null && jamMasuk <= jamMasukIdeal;
+    const pulangTepat = jamPulang !== null && jamPulang >= jamPulangIdeal;
+    if (jamMasuk === null && jamPulang === null) return "";
+    if (jamMasuk === null) return pulangTepat ? "TAM" : "PT";
+    if (jamPulang === null) return masukTepat ? "TAP" : "TAPT";
+    if (masukTepat && pulangTepat) return "H";
+    if (!masukTepat && pulangTepat) return "T";
+    if (masukTepat && !pulangTepat) return "P";
+    return "PT";
+  }
+
   /**
   * Handle POST requests - API Router
   */
@@ -107,6 +269,10 @@
       let response = {};
       
       switch(action) {
+        case 'processLog':
+          response = processLog(postData.logs, postData.scannerPin);
+          break;
+
         case 'login':
           response = loginUser(postData.username, postData.password);
           break;

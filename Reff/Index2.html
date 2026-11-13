@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Absensi Siswa</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(145deg, #1a1a2e, #16213e);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      color: #e0e0e0;
+    }
+    .container {
+      width: 90%;
+      max-width: 700px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 24px;
+      position: relative;
+      align-items: center;
+    }
+    .logo {
+      width: 120px;
+      height: auto;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+      transition: transform 0.3s ease;
+    }
+    .logo:hover {
+      transform: scale(1.05);
+    }
+    .datetime-card {
+      background: linear-gradient(145deg, #2a2a4a, #1e1e38);
+      padding: 28px;
+      border-radius: 16px;
+      box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.05);
+      text-align: center;
+      border: 2px solid #a3bffa;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s ease, background 0.3s ease;
+    }
+    .datetime-card.offline {
+      border-color: #ff6b6b;
+      background: linear-gradient(145deg, #4a2a2a, #381e1e);
+    }
+    .datetime-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.08), transparent);
+      z-index: -1;
+    }
+    .input-card {
+      background: linear-gradient(145deg, #2a2a4a, #1e1e38);
+      padding: 28px;
+      border-radius: 16px;
+      box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.05);
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .input-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 12px 12px 24px rgba(0, 0, 0, 0.4), -12px -12px 24px rgba(255, 255, 255, 0.1);
+    }
+    h1 {
+      color: #ffffff;
+      font-size: clamp(24px, 5.5vw, 28px);
+      font-weight: 700;
+      margin: 0 0 16px 0;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      background: linear-gradient(to right, #ffffff, #a3bffa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .datetime-display {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .date-display {
+      font-size: clamp(18px, 4vw, 22px);
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      background: linear-gradient(to right, #ffffff, #a3bffa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .digital-clock {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: clamp(90px, 20vw, 110px);
+      font-weight: 700;
+      color: #ffffff;
+      text-align: center;
+      padding: 10px;
+      border-radius: 12px;
+      background: linear-gradient(145deg, #3a3a5a, #2a2a4a);
+      box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.2), inset -4px -4px 8px rgba(255, 255, 255, 0.1);
+    }
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 16px;
+      margin-bottom: 16px;
+    }
+    .input-field {
+      width: calc(100% - 60px);
+      max-width: 400px;
+      padding: 14px;
+      font-size: clamp(16px, 4vw, 18px);
+      border: none;
+      border-radius: 12px;
+      text-align: center;
+      background: linear-gradient(145deg, #2a2a4a, #1e1e38);
+      box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.2), inset -4px -4px 8px rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      transition: all 0.3s ease;
+    }
+    .input-field:focus {
+      outline: none;
+      box-shadow: 0 0 12px rgba(81, 119, 255, 0.5);
+      background: linear-gradient(145deg, #3a3a5a, #2e2e48);
+    }
+    .input-field::placeholder {
+      color: #a3bffa;
+      opacity: 0.7;
+    }
+    .scan-button {
+      background: linear-gradient(45deg, #5177ff, #7aa2ff);
+      color: #ffffff;
+      border: none;
+      padding: 14px;
+      font-size: clamp(20px, 4vw, 24px);
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.2), -4px -4px 8px rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+    .scan-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 6px 6px 12px rgba(0, 0, 0, 0.3), -6px -6px 12px rgba(255, 255, 255, 0.15);
+    }
+    .scan-button:active {
+      transform: translateY(0);
+      box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.2), inset -4px -4px 8px rgba(255, 255, 255, 0.1);
+    }
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 600px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .toast {
+      background: linear-gradient(145deg, #2a2a4a, #1e1e38);
+      padding: 12px 24px;
+      border-radius: 12px;
+      box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.2), -4px -4px 8px rgba(255, 255, 255, 0.1);
+      font-size: clamp(14px, 3.5vw, 16px);
+      font-weight: 500;
+      color: #e0e0e0;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      text-align: center;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .toast.success {
+      background: linear-gradient(145deg, #2a3a6a, #1e2a48);
+      color: #a3bffa;
+    }
+    .toast.error {
+      background: linear-gradient(145deg, #4a2a2a, #381e1e);
+      color: #ff6b6b;
+    }
+    .log-toast {
+      background: linear-gradient(145deg, #2a2a4a, #1e1e38);
+      padding: 12px 24px;
+      border-radius: 12px;
+      box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.2), -4px -4px 8px rgba(255, 255, 255, 0.1);
+      font-size: clamp(14px, 3.5vw, 16px);
+      font-weight: 500;
+      color: #e0e0e0;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      text-align: center;
+    }
+    .log-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @media (max-width: 600px) {
+      .container {
+        width: 95%;
+        gap: 16px;
+        padding: 12px;
+      }
+      .logo {
+        width: 80px;
+      }
+      .datetime-card, .input-card {
+        padding: 20px;
+      }
+      .date-display {
+        font-size: clamp(16px, 3.5vw, 20px);
+      }
+      .digital-clock {
+        font-size: clamp(60px, 14vw, 80px);
+      }
+      .input-field {
+        padding: 12px;
+        font-size: clamp(14px, 3.5vw, 16px);
+        width: calc(100% - 50px);
+        max-width: 350px;
+      }
+      .scan-button {
+        padding: 12px;
+        width: 45px;
+        height: 45px;
+        font-size: clamp(18px, 3.5vw, 22px);
+      }
+      .toast, .log-toast {
+        padding: 10px 20px;
+        font-size: clamp(12px, 3vw, 14px);
+      }
+    }
+    @media (max-width: 400px) {
+      .digital-clock {
+        font-size: clamp(50px, 12vw, 70px);
+      }
+      .logo {
+        width: 60px;
+      }
+      .input-field {
+        width: calc(100% - 45px);
+        max-width: 300px;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="scanner.css">
+</head>
+<body>
+  <div class="container">
+    <header class="brand-bar">
+      <div class="brand-lockup">
+        <div class="logo-frame">
+          <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgZs7SGoRoibsRUkeVfMPcmjXotJL7Q0JoXJw6fU6mQt2Ez88VVuY39eJG97DX4_p-WIfwmjAZEvCsvTXu3wYNZOzQpmoPJ6D5pptrlQO8hGOEDclFmEW5Sa6Wq6G0BlE0BjySPARQWLojr3vU2i1x8SunVWuFJv1KCcVv30zaJ8MLZZP1o-6-cdDW0Sa4/s320/smk-02.png" alt="Logo SMK Negeri 1 Bumijawa" class="logo">
+        </div>
+        <div class="brand-copy">
+          <p>SMK NEGERI 1 BUMIJAWA</p>
+          <strong>SiAbu<span>.</span></strong>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="connection-status" id="connection-status" aria-live="polite">
+          <span class="connection-dot" aria-hidden="true"></span>
+          <span id="connection-label">Memeriksa koneksi</span>
+        </div>
+        <button class="fullscreen-button" id="fullscreen-button" type="button" aria-label="Aktifkan layar penuh" title="Aktifkan layar penuh">Layar penuh</button>
+      </div>
+    </header>
+
+    <main class="attendance-layout">
+    <div class="datetime-card" id="datetime-card">
+      <div class="datetime-display">
+        <div class="panel-topline">
+          <span class="live-indicator">WAKTU SEKOLAH</span>
+          <span>LOKAL</span>
+        </div>
+        <div id="date-display" class="date-display">Memuat tanggal...</div>
+        <div id="digital-clock" class="digital-clock">00:00:00</div>
+      </div>
+    </div>
+    <div class="input-card">
+      <div class="input-head">
+        <p>ABSENSI SISWA</p>
+        <h1>Absensi Siswa</h1>
+      </div>
+      <label for="nisInput">NIS siswa</label>
+      <div class="input-group">
+        <input type="text" id="nisInput" class="input-field" placeholder="Scan atau ketik NIS" maxlength="8" inputmode="numeric" autocomplete="off" aria-describedby="input-hint">
+        <button id="scanButton" class="scan-button" type="button" aria-label="Buka kamera">Buka kamera</button>
+        <div class="scan-bubble-layer" id="scan-bubble-layer" aria-hidden="true"></div>
+      </div>
+      <span class="visually-hidden" id="input-hint">Masukkan NIS yang terdiri dari 8 digit angka.</span>
+    </div>
+    </main>
+
+    <div class="toast-container">
+      <div id="status-toast" class="toast"></div>
+      <div id="log-toast" class="log-toast show" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <script src="../js/config.example.js"></script>
+  <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+  <script>
+    const nisInput = document.getElementById('nisInput');
+    const scanButton = document.getElementById('scanButton');
+    const statusToast = document.getElementById('status-toast');
+    const logToast = document.getElementById('log-toast');
+    const datetimeCard = document.getElementById('datetime-card');
+    const fullscreenButton = document.getElementById('fullscreen-button');
+    let isProcessing = false;
+    const LOG_KEY = 'attendance_log';
+    let codeReader = null;
+    let videoElement = null;
+    let scannerOverlay = null;
+    let isScanning = false;
+    let isQueueProcessing = false;
+    let nextQueueAttemptAt = 0;
+    let retryDelayMs = 5000;
+
+    function getScannerPin() {
+      let scannerPin = sessionStorage.getItem('scanner_pin');
+      if (!scannerPin) {
+        scannerPin = window.prompt('Masukkan PIN scanner:');
+        if (scannerPin) sessionStorage.setItem('scanner_pin', scannerPin);
+      }
+      return scannerPin;
+    }
+
+    function showToast(element, message, type) {
+      element.textContent = message;
+      element.className = `toast ${type} show`;
+      setTimeout(() => {
+        element.className = `toast ${type}`;
+      }, 3000);
+    }
+
+    function updateLogCount() {
+      const log = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+      logToast.textContent = `Log tertunda: ${log.length}`;
+    }
+
+    async function toggleFullscreen() {
+      try {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
+        } else {
+          await document.documentElement.requestFullscreen();
+        }
+      } catch (error) {
+        showToast(statusToast, 'Mode layar penuh tidak tersedia di browser ini.', 'error');
+      }
+    }
+
+    function updateFullscreenButton() {
+      const isFullscreen = Boolean(document.fullscreenElement);
+      const label = isFullscreen ? 'Keluar layar penuh' : 'Layar penuh';
+      fullscreenButton.textContent = label;
+      fullscreenButton.setAttribute('aria-label', isFullscreen ? 'Keluar dari layar penuh' : 'Aktifkan layar penuh');
+      fullscreenButton.title = isFullscreen ? 'Keluar dari layar penuh' : 'Aktifkan layar penuh';
+    }
+
+    function getScanLogId(entry) {
+      return entry.id || `${entry.nis}:${new Date(entry.timestamp).toISOString()}`;
+    }
+
+    function showScanBubble(studentName, index) {
+      const layer = document.getElementById('scan-bubble-layer');
+      const bubble = document.createElement('span');
+      const offsets = [-24, 0, 24, -12, 12, 32, -32, 0];
+      bubble.className = 'scan-bubble';
+      bubble.textContent = studentName;
+      bubble.style.left = `calc(50% + ${offsets[index % offsets.length]}px)`;
+      bubble.style.animationDelay = `${index * 100}ms`;
+      layer.appendChild(bubble);
+      window.setTimeout(() => bubble.remove(), 2200 + index * 100);
+    }
+
+    async function processQueue() {
+      if (isQueueProcessing || !navigator.onLine || Date.now() < nextQueueAttemptAt) return;
+      const pending = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+      if (!pending.length) return;
+      const log = pending.slice(0, 200);
+      const scannerPin = getScannerPin();
+      if (!scannerPin) return;
+
+      isQueueProcessing = true;
+      let shouldContinue = false;
+      try {
+        const response = await fetch(`${API_URL}?action=processLog`, {
+          method: 'POST',
+          body: JSON.stringify({ logs: log, scannerPin })
+        });
+        if (!response.ok) throw new Error(`API mengembalikan HTTP ${response.status}`);
+
+        const result = await response.json();
+        if (result.status !== 'success') throw new Error(result.message || 'Gagal memproses scan.');
+
+        const acknowledgedIds = new Set(result.acknowledgedIds || []);
+        const recordedIds = new Set(result.recordedIds || []);
+        (result.recordedScans || [])
+          .filter(scan => recordedIds.has(scan.id) && scan.nama)
+          .slice(-12)
+          .forEach((scan, index) => showScanBubble(scan.nama, index));
+        const currentPending = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+        const remaining = currentPending.filter(entry => {
+          return !acknowledgedIds.has(getScanLogId(entry));
+        });
+        localStorage.setItem(LOG_KEY, JSON.stringify(remaining));
+        updateLogCount();
+        retryDelayMs = 5000;
+        nextQueueAttemptAt = 0;
+        shouldContinue = remaining.length > 0;
+        setTimeout(() => nisInput.focus(), 3000);
+      } catch (error) {
+        if (String(error.message || error).includes('PIN scanner')) {
+          sessionStorage.removeItem('scanner_pin');
+        }
+        nextQueueAttemptAt = Date.now() + retryDelayMs;
+        retryDelayMs = Math.min(retryDelayMs * 2, 60000);
+        showToast(statusToast, 'Gagal mengirim log: ' + error.message, 'error');
+      } finally {
+        isQueueProcessing = false;
+      }
+
+      if (shouldContinue) processQueue();
+    }
+
+    function startScanner() {
+      if (isScanning) return;
+      isScanning = true;
+
+      codeReader = new ZXing.BrowserMultiFormatReader();
+      scannerOverlay = document.createElement('div');
+      scannerOverlay.className = 'scanner-overlay';
+      scannerOverlay.setAttribute('role', 'dialog');
+      scannerOverlay.setAttribute('aria-modal', 'true');
+      scannerOverlay.setAttribute('aria-label', 'Pemindai QR siswa');
+
+      const toolbar = document.createElement('div');
+      toolbar.className = 'scanner-toolbar';
+      const scannerTitle = document.createElement('strong');
+      scannerTitle.textContent = 'Pemindai QR siswa';
+      const closeButton = document.createElement('button');
+      closeButton.className = 'scanner-close-button';
+      closeButton.type = 'button';
+      closeButton.textContent = 'Tutup kamera';
+      closeButton.addEventListener('click', stopScanner);
+      toolbar.append(scannerTitle, closeButton);
+
+      const frame = document.createElement('div');
+      frame.className = 'scanner-frame';
+      frame.setAttribute('aria-hidden', 'true');
+      const instruction = document.createElement('p');
+      instruction.className = 'scanner-instruction';
+      instruction.textContent = 'Posisikan QR siswa di dalam bingkai';
+
+      videoElement = document.createElement('video');
+      videoElement.className = 'scanner-video';
+      scannerOverlay.append(videoElement, frame, toolbar, instruction);
+      document.body.appendChild(scannerOverlay);
+      scanButton.textContent = 'Tutup kamera';
+      scanButton.setAttribute('aria-label', 'Tutup kamera');
+
+      codeReader.decodeFromVideoDevice(null, videoElement, (result, err) => {
+        if (result) {
+          const nis = result.text;
+          if (/^\d{8}$/.test(nis)) {
+            nisInput.value = nis;
+            processNIS(nis);
+            stopScanner();
+            setTimeout(startScanner, 1000);
+          } else {
+            showToast(statusToast, 'NIS tidak valid.', 'error');
+          }
+        }
+        if (err && !(err instanceof ZXing.NotFoundException)) {
+          console.error(err);
+        }
+      });
+    }
+
+    function stopScanner() {
+      if (codeReader) {
+        codeReader.reset();
+        codeReader = null;
+      }
+      if (videoElement) {
+        videoElement = null;
+      }
+      if (scannerOverlay) {
+        scannerOverlay.remove();
+        scannerOverlay = null;
+      }
+      isScanning = false;
+      scanButton.textContent = 'Buka kamera';
+      scanButton.setAttribute('aria-label', 'Buka kamera');
+    }
+
+    function processNIS(nis) {
+      if (!isProcessing) {
+        isProcessing = true;
+        const log = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+        log.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          nis: nis,
+          timestamp: new Date().toISOString()
+        });
+        localStorage.setItem(LOG_KEY, JSON.stringify(log));
+        updateLogCount();
+
+        showToast(statusToast, 'Scan tercatat.', 'success');
+        nisInput.value = '';
+        nisInput.focus();
+        isProcessing = false;
+      }
+    }
+
+    function updateConnectivityStatus() {
+      const connectionStatus = document.getElementById('connection-status');
+      const connectionLabel = document.getElementById('connection-label');
+      document.body.classList.toggle('offline', !navigator.onLine);
+      if (navigator.onLine) {
+        datetimeCard.classList.remove('offline');
+        connectionStatus.classList.remove('offline');
+        connectionLabel.textContent = 'Terhubung';
+      } else {
+        datetimeCard.classList.add('offline');
+        connectionStatus.classList.add('offline');
+        connectionLabel.textContent = 'Offline · tersimpan lokal';
+      }
+    }
+
+    function updateDateTime() {
+      const now = new Date();
+      const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      const dayName = days[now.getDay()];
+      const day = now.getDate().toString().padStart(2, '0');
+      const month = months[now.getMonth()];
+      const year = now.getFullYear();
+      document.getElementById('date-display').textContent = `${dayName}, ${day} ${month} ${year}`;
+
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const seconds = now.getSeconds().toString().padStart(2, '0');
+      document.getElementById('digital-clock').textContent = `${hours}:${minutes}:${seconds}`;
+    }
+
+    window.onload = function() {
+      nisInput.focus();
+      updateLogCount();
+      setInterval(processQueue, 2000);
+      processQueue();
+      updateDateTime();
+      setInterval(updateDateTime, 1000);
+      updateConnectivityStatus();
+      updateFullscreenButton();
+      window.addEventListener('online', updateConnectivityStatus);
+      window.addEventListener('offline', updateConnectivityStatus);
+      document.addEventListener('fullscreenchange', updateFullscreenButton);
+    };
+
+    fullscreenButton.addEventListener('click', toggleFullscreen);
+
+    nisInput.addEventListener('input', function() {
+      if (nisInput.value.length === 8) {
+        if (/^\d{8}$/.test(nisInput.value)) {
+          processNIS(nisInput.value);
+        } else {
+          showToast(statusToast, 'NIS harus 8 digit angka.', 'error');
+          nisInput.value = '';
+          nisInput.focus();
+        }
+      }
+    });
+
+    scanButton.addEventListener('click', function() {
+      if (isScanning) {
+        stopScanner();
+      } else {
+        startScanner();
+      }
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        nisInput.focus();
+      }
+    });
+  </script>
+</body>
+</html>

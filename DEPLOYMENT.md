@@ -30,7 +30,8 @@ Panduan lengkap untuk deploy aplikasi SiAbu dengan arsitektur API-based (Backend
    ```javascript
    const SHEET_ID = "YOUR_GOOGLE_SHEETS_ID";
    ```
-5. Siapkan sheet bernama `GURU` dengan header `EMAIL`, `NIP`, `NAMA`, `PASSWORD`, `ROLE`. Nilai `ROLE` dapat `ADMIN`, `GURU`, atau `SUPERADMIN`; akun staf dapat login dengan NIP atau email. Tetapkan role `SUPERADMIN` langsung di sheet untuk akun tepercaya. Role ini tidak dapat diubah melalui aplikasi.
+5. Di **Project Settings** → **Script Properties**, tambahkan `SCANNER_PIN` dengan PIN kuat yang hanya diketahui petugas scanner. Jangan menaruh PIN di source code.
+7. Siapkan sheet bernama `GURU` dengan header `EMAIL`, `NIP`, `NAMA`, `PASSWORD`, `ROLE`. Nilai `ROLE` dapat `ADMIN`, `GURU`, atau `SUPERADMIN`; akun staf dapat login dengan NIP atau email. Tetapkan role `SUPERADMIN` langsung di sheet untuk akun tepercaya. Role ini tidak dapat diubah melalui aplikasi.
 
 > Admin dan superadmin dapat mengakses menu Kelola Guru. Endpoint daftar dan perubahan role memverifikasi ulang kredensial dan role dari sheet GURU. Role superadmin dan admin terakhir dilindungi agar tidak dapat diturunkan rolenya. Menu Pantau Absensi tersedia bagi guru, admin, dan superadmin untuk memilih kelas lalu melihat nama dan NIS siswa.
 
@@ -46,6 +47,17 @@ Panduan lengkap untuk deploy aplikasi SiAbu dengan arsitektur API-based (Backend
 5. Klik **Deploy**
 6. **Copy Deployment URL** - Anda akan membutuhkan ini!
    - Format: `https://script.google.com/macros/s/XXXXX/exec`
+   - URL ini menjadi API backend untuk dashboard dan halaman scanner.
+   - Halaman scanner statis dibuka dari GitHub Pages di `/Reff/Index2.html`; tidak perlu membuat file HTML di Apps Script.
+   - Kamera perlu izin browser dan halaman HTTPS. GitHub Pages menyediakan HTTPS.
+
+### Penggunaan Beberapa Scanner
+
+- Buka halaman scanner pada masing-masing perangkat. Setiap perangkat menyimpan antrean lokal sendiri dan mengirim paling banyak 200 scan per batch, diperiksa setiap dua detik.
+- Backend memakai `LockService` untuk menyerialkan perubahan sheet dari beberapa perangkat. Jika permintaan gagal atau backend sibuk, scanner mempertahankan antrean dan mencoba lagi dengan jeda bertahap.
+- Setiap scanner perlu memasukkan PIN yang sama. Jangan membagikan URL/PIN ke publik; gunakan perangkat petugas dan ganti PIN jika diketahui pihak lain.
+- Sinkronkan tanggal, waktu, dan zona waktu seluruh perangkat. Waktu scan berasal dari jam perangkat dan dipakai menentukan tanggal serta status masuk/pulang.
+- Coba dahulu dengan beberapa scanner dan data uji, lalu pantau eksekusi/quota Apps Script serta antrean tertunda sebelum dipakai untuk seluruh siswa.
 
 ### Step 4: Test API
 
@@ -78,8 +90,8 @@ curl -X POST "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?action=
 
 ### Step 2: Konfigurasi API URL
 
-1. Buka file `js/config.js`
-2. Ganti `YOUR_DEPLOYMENT_ID` dengan deployment URL dari Step 1.3:
+1. Pastikan URL deployment Apps Script pada `js/config.example.js` mengarah ke backend yang baru dibuat. Halaman scanner di `Reff/Index2.html` memuat file konfigurasi ini.
+2. Atur URL yang sama di `js/config.js` untuk dashboard:
    ```javascript
    const API_URL = 'https://script.google.com/macros/s/XXXXX/exec';
    ```
