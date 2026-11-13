@@ -567,6 +567,38 @@ h1 {
   transform: none;
 }
 
+.queue-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.retry-rejected-button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--coral);
+  border-radius: 6px;
+  background: var(--paper-light);
+  color: var(--green);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.retry-rejected-button:hover {
+  background: var(--green-soft);
+}
+
+.retry-rejected-button:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: 2px;
+}
+
+.retry-rejected-button[hidden] {
+  display: none;
+}
+
 .scanner-overlay {
   position: fixed;
   z-index: 9999;

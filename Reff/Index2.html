@@ -320,7 +320,10 @@
 
     <div class="toast-container">
       <div id="status-toast" class="toast"></div>
-      <div id="log-toast" class="log-toast show" role="status" aria-live="polite"></div>
+      <div class="queue-status">
+        <div id="log-toast" class="log-toast show" role="status" aria-live="polite"></div>
+        <button id="retry-rejected-button" class="retry-rejected-button" type="button" hidden>Ulangi log ditolak</button>
+      </div>
     </div>
   </div>
 
@@ -333,8 +336,10 @@
     const logToast = document.getElementById('log-toast');
     const datetimeCard = document.getElementById('datetime-card');
     const fullscreenButton = document.getElementById('fullscreen-button');
+    const retryRejectedButton = document.getElementById('retry-rejected-button');
     let isProcessing = false;
     const LOG_KEY = 'attendance_log';
+    const REJECTED_LOG_KEY = 'attendance_rejected_log';
     let codeReader = null;
     let videoElement = null;
     let scannerOverlay = null;
@@ -353,7 +358,11 @@
 
     function updateLogCount() {
       const log = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
-      logToast.textContent = `Log tertunda: ${log.length}`;
+      const rejected = JSON.parse(localStorage.getItem(REJECTED_LOG_KEY) || '[]');
+      logToast.textContent = rejected.length
+        ? `Log tertunda: ${log.length} · ditolak: ${rejected.length}`
+        : `Log tertunda: ${log.length}`;
+      retryRejectedButton.hidden = rejected.length === 0;
     }
 
     async function toggleFullscreen() {
@@ -378,6 +387,21 @@
 
     function getScanLogId(entry) {
       return entry.id || `${entry.nis}:${new Date(entry.timestamp).toISOString()}`;
+    }
+
+    function retryRejectedLogs() {
+      const rejected = JSON.parse(localStorage.getItem(REJECTED_LOG_KEY) || '[]');
+      if (!rejected.length) return;
+      const pending = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+      const pendingIds = new Set(pending.map(getScanLogId));
+      const retryEntries = rejected
+        .filter(entry => !pendingIds.has(getScanLogId(entry)))
+        .map(({ rejectionReason, rejectedAt, ...entry }) => entry);
+      localStorage.setItem(LOG_KEY, JSON.stringify([...pending, ...retryEntries]));
+      localStorage.removeItem(REJECTED_LOG_KEY);
+      nextQueueAttemptAt = 0;
+      updateLogCount();
+      processQueue();
     }
 
     function showScanBubble(studentName, index) {
@@ -411,17 +435,41 @@
         if (result.status !== 'success') throw new Error(result.message || 'Gagal memproses scan.');
 
         const acknowledgedIds = new Set(result.acknowledgedIds || []);
+        const discardedIds = new Set(result.discardedIds || []);
+        const rejectedScans = result.rejectedScans || [];
         const recordedIds = new Set(result.recordedIds || []);
         (result.recordedScans || [])
           .filter(scan => recordedIds.has(scan.id) && scan.nama)
           .slice(-12)
           .forEach((scan, index) => showScanBubble(scan.nama, index));
         const currentPending = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+        const rejectedById = new Map(rejectedScans.map(scan => [scan.id, scan]));
+        const newlyRejected = currentPending
+          .filter(entry => discardedIds.has(getScanLogId(entry)))
+          .map(entry => {
+            const rejection = rejectedById.get(getScanLogId(entry));
+            return {
+              ...entry,
+              rejectionReason: rejection ? rejection.reason : 'Data scan ditolak.',
+              rejectedAt: new Date().toISOString()
+            };
+          });
+        if (newlyRejected.length) {
+          const previousRejected = JSON.parse(localStorage.getItem(REJECTED_LOG_KEY) || '[]');
+          localStorage.setItem(REJECTED_LOG_KEY, JSON.stringify([...previousRejected, ...newlyRejected]));
+        }
         const remaining = currentPending.filter(entry => {
-          return !acknowledgedIds.has(getScanLogId(entry));
+          const id = getScanLogId(entry);
+          return !acknowledgedIds.has(id) && !discardedIds.has(id);
         });
         localStorage.setItem(LOG_KEY, JSON.stringify(remaining));
         updateLogCount();
+        if (newlyRejected.length) {
+          const firstRejected = newlyRejected[0];
+          const moreCount = newlyRejected.length - 1;
+          const moreText = moreCount ? ` (+${moreCount} lainnya)` : '';
+          showToast(statusToast, `NIS ${firstRejected.nis}: ${firstRejected.rejectionReason}${moreText}`, 'error');
+        }
         retryDelayMs = 5000;
         nextQueueAttemptAt = 0;
         shouldContinue = remaining.length > 0;
@@ -573,6 +621,7 @@
     };
 
     fullscreenButton.addEventListener('click', toggleFullscreen);
+    retryRejectedButton.addEventListener('click', retryRejectedLogs);
 
     nisInput.addEventListener('input', function() {
       if (nisInput.value.length === 8) {

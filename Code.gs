@@ -89,15 +89,38 @@
       throw new Error("Batch scan harus berisi 1 sampai 200 data.");
     }
 
-    const logs = logData.map(log => {
+    const logs = [];
+    const rejectedScans = [];
+    logData.forEach((log, index) => {
       const nis = String(log && log.nis || "").trim();
       const timestamp = new Date(log && log.timestamp);
-      if (!/^\d{8}$/.test(nis) || Number.isNaN(timestamp.getTime())) {
-        throw new Error("Data scan tidak valid. NIS harus 8 digit dan waktu harus valid.");
+      const id = String(log && log.id || (Number.isNaN(timestamp.getTime())
+        ? `invalid:${index}:${nis}`
+        : `${nis}:${timestamp.toISOString()}`));
+      if (!/^\d{8}$/.test(nis)) {
+        rejectedScans.push({ id, nis, reason: "Format NIS tidak valid; harus 8 digit." });
+        return;
       }
-      const id = String(log && log.id || `${nis}:${timestamp.toISOString()}`);
-      return { id, nis, timestamp };
-    }).sort((left, right) => left.timestamp - right.timestamp);
+      if (Number.isNaN(timestamp.getTime())) {
+        rejectedScans.push({ id, nis, reason: "Waktu scan tidak valid." });
+        return;
+      }
+      logs.push({ id, nis, timestamp });
+    });
+
+    logs.sort((left, right) => left.timestamp - right.timestamp);
+    if (logs.length === 0) {
+      return {
+        status: "success",
+        message: `${rejectedScans.length} scan ditolak karena data tidak valid.`,
+        acknowledgedIds: [],
+        discardedIds: rejectedScans.map(scan => scan.id),
+        rejectedScans,
+        recordedIds: [],
+        recordedScans: [],
+        skippedDates: []
+      };
+    }
 
     const lock = LockService.getScriptLock();
     lock.waitLock(30000);
@@ -115,8 +138,11 @@
         String(row[siswa.columns.nama] || "").trim()
       ]));
       const validNis = new Set(studentNames.keys());
-      const unknownNis = [...new Set(logs.filter(log => !validNis.has(log.nis)).map(log => log.nis))];
-      if (unknownNis.length) throw new Error("NIS tidak terdaftar: " + unknownNis.join(", "));
+      const validLogs = logs.filter(log => {
+        if (validNis.has(log.nis)) return true;
+        rejectedScans.push({ id: log.id, nis: log.nis, reason: "NIS tidak terdaftar." });
+        return false;
+      });
 
       const lastColumn = absenSheet.getLastColumn();
       const headers = absenSheet.getRange(1, 1, 1, lastColumn).getDisplayValues()[0]
@@ -149,7 +175,7 @@
       const recordedIds = [];
       const recordedScans = [];
       const skippedDates = new Set();
-      logs.forEach(log => {
+      validLogs.forEach(log => {
         const dayKey = Utilities.formatDate(log.timestamp, timeZone, "yyyy-MM-dd");
         const dateParts = dayKey.split("-").map(Number);
         const dayOfWeek = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2])).getUTCDay();
@@ -216,6 +242,8 @@
           ? `Scan diproses; tanggal libur dilewati: ${[...skippedDates].join(", ")}.`
           : `${acknowledgedIds.length} scan berhasil diproses.`,
         acknowledgedIds,
+        discardedIds: rejectedScans.map(scan => scan.id),
+        rejectedScans,
         recordedIds,
         recordedScans,
         skippedDates: [...skippedDates]
