@@ -55,7 +55,7 @@ Panduan lengkap untuk deploy aplikasi SiAbu dengan arsitektur API-based (Backend
 - Buka halaman scanner pada masing-masing perangkat. Setiap perangkat menyimpan antrean lokal sendiri dan mengirim paling banyak 200 scan per batch, diperiksa setiap dua detik.
 - Backend memakai `LockService` untuk menyerialkan perubahan sheet dari beberapa perangkat. Jika permintaan gagal atau backend sibuk, scanner mempertahankan antrean dan mencoba lagi dengan jeda bertahap.
 - Endpoint scan tidak memakai PIN. Karena Web App diatur untuk akses publik, orang yang mengetahui NIS dapat mengirim permintaan scan; batasi penyebaran URL dan gunakan hanya di perangkat petugas.
-- NIS yang tidak terdaftar atau data scan tidak valid dipisahkan dari antrean aktif agar scan lain tetap berjalan. Setelah memperbaiki data siswa, tekan **Ulangi log ditolak** pada scanner untuk mencoba kirim ulang.
+- NIS yang tidak terdaftar atau data scan tidak valid dicoba ulang otomatis hingga tiga kali dengan jeda 5, 10, dan 20 detik. Jika tetap ditolak setelah retry ketiga, log tersebut dihapus dari antrean; scan lain tetap berjalan tanpa tindakan manual.
 - Sinkronkan tanggal, waktu, dan zona waktu seluruh perangkat. Waktu scan berasal dari jam perangkat dan dipakai menentukan tanggal serta status masuk/pulang.
 - Coba dahulu dengan beberapa scanner dan data uji, lalu pantau eksekusi/quota Apps Script serta antrean tertunda sebelum dipakai untuk seluruh siswa.
 

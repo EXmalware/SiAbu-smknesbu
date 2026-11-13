@@ -318,12 +318,18 @@
     </div>
     </main>
 
+    <aside class="pending-overlay" id="pending-overlay" aria-hidden="true" hidden>
+      <div class="pending-overlay-header">
+        <span class="pending-live-dot"></span>
+        <span>MENUNGGU KIRIM</span>
+        <strong id="pending-overlay-count">0</strong>
+      </div>
+      <ol class="pending-overlay-list" id="pending-overlay-list"></ol>
+    </aside>
+
     <div class="toast-container">
       <div id="status-toast" class="toast"></div>
-      <div class="queue-status">
-        <div id="log-toast" class="log-toast show" role="status" aria-live="polite"></div>
-        <button id="retry-rejected-button" class="retry-rejected-button" type="button" hidden>Ulangi log ditolak</button>
-      </div>
+      <div id="log-toast" class="log-toast show" role="status" aria-live="polite"></div>
     </div>
   </div>
 
@@ -336,10 +342,12 @@
     const logToast = document.getElementById('log-toast');
     const datetimeCard = document.getElementById('datetime-card');
     const fullscreenButton = document.getElementById('fullscreen-button');
-    const retryRejectedButton = document.getElementById('retry-rejected-button');
+    const pendingOverlay = document.getElementById('pending-overlay');
+    const pendingOverlayCount = document.getElementById('pending-overlay-count');
+    const pendingOverlayList = document.getElementById('pending-overlay-list');
     let isProcessing = false;
     const LOG_KEY = 'attendance_log';
-    const REJECTED_LOG_KEY = 'attendance_rejected_log';
+    const LEGACY_REJECTED_LOG_KEY = 'attendance_rejected_log';
     let codeReader = null;
     let videoElement = null;
     let scannerOverlay = null;
@@ -358,11 +366,14 @@
 
     function updateLogCount() {
       const log = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
-      const rejected = JSON.parse(localStorage.getItem(REJECTED_LOG_KEY) || '[]');
-      logToast.textContent = rejected.length
-        ? `Log tertunda: ${log.length} · ditolak: ${rejected.length}`
-        : `Log tertunda: ${log.length}`;
-      retryRejectedButton.hidden = rejected.length === 0;
+      logToast.textContent = `Log tertunda: ${log.length}`;
+      pendingOverlay.hidden = log.length === 0;
+      pendingOverlayCount.textContent = String(log.length);
+      pendingOverlayList.replaceChildren(...log.slice(-8).reverse().map(entry => {
+        const item = document.createElement('li');
+        item.textContent = String(entry.nis || 'NIS tidak tersedia');
+        return item;
+      }));
     }
 
     async function toggleFullscreen() {
@@ -389,19 +400,20 @@
       return entry.id || `${entry.nis}:${new Date(entry.timestamp).toISOString()}`;
     }
 
-    function retryRejectedLogs() {
-      const rejected = JSON.parse(localStorage.getItem(REJECTED_LOG_KEY) || '[]');
+    function restoreLegacyRejectedLogs() {
+      const rejected = JSON.parse(localStorage.getItem(LEGACY_REJECTED_LOG_KEY) || '[]');
       if (!rejected.length) return;
       const pending = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
       const pendingIds = new Set(pending.map(getScanLogId));
-      const retryEntries = rejected
+      const restored = rejected
         .filter(entry => !pendingIds.has(getScanLogId(entry)))
-        .map(({ rejectionReason, rejectedAt, ...entry }) => entry);
-      localStorage.setItem(LOG_KEY, JSON.stringify([...pending, ...retryEntries]));
-      localStorage.removeItem(REJECTED_LOG_KEY);
-      nextQueueAttemptAt = 0;
-      updateLogCount();
-      processQueue();
+        .map(({ rejectionReason, rejectedAt, ...entry }) => ({
+          ...entry,
+          rejectionRetryCount: 0,
+          retryAfter: 0
+        }));
+      localStorage.setItem(LOG_KEY, JSON.stringify([...pending, ...restored]));
+      localStorage.removeItem(LEGACY_REJECTED_LOG_KEY);
     }
 
     function showScanBubble(studentName, index) {
@@ -420,7 +432,10 @@
       if (isQueueProcessing || !navigator.onLine || Date.now() < nextQueueAttemptAt) return;
       const pending = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
       if (!pending.length) return;
-      const log = pending.slice(0, 200);
+      const now = Date.now();
+      const ready = pending.filter(entry => Number(entry.retryAfter || 0) <= now);
+      if (!ready.length) return;
+      const log = ready.slice(0, 200);
 
       isQueueProcessing = true;
       let shouldContinue = false;
@@ -444,35 +459,43 @@
           .forEach((scan, index) => showScanBubble(scan.nama, index));
         const currentPending = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
         const rejectedById = new Map(rejectedScans.map(scan => [scan.id, scan]));
-        const newlyRejected = currentPending
-          .filter(entry => discardedIds.has(getScanLogId(entry)))
-          .map(entry => {
-            const rejection = rejectedById.get(getScanLogId(entry));
-            return {
-              ...entry,
-              rejectionReason: rejection ? rejection.reason : 'Data scan ditolak.',
-              rejectedAt: new Date().toISOString()
-            };
-          });
-        if (newlyRejected.length) {
-          const previousRejected = JSON.parse(localStorage.getItem(REJECTED_LOG_KEY) || '[]');
-          localStorage.setItem(REJECTED_LOG_KEY, JSON.stringify([...previousRejected, ...newlyRejected]));
-        }
-        const remaining = currentPending.filter(entry => {
+        const retryingScans = [];
+        const exhaustedScans = [];
+        const retryDelays = [5000, 10000, 20000];
+        const remaining = currentPending.flatMap(entry => {
           const id = getScanLogId(entry);
-          return !acknowledgedIds.has(id) && !discardedIds.has(id);
+          if (acknowledgedIds.has(id)) return [];
+          if (discardedIds.has(id)) {
+            const retryCount = Number(entry.rejectionRetryCount || 0);
+            if (retryCount >= retryDelays.length) {
+              exhaustedScans.push(entry);
+              return [];
+            }
+            const nextRetryCount = retryCount + 1;
+            const rejection = rejectedById.get(id);
+            const retryEntry = {
+              ...entry,
+              rejectionRetryCount: nextRetryCount,
+              rejectionReason: rejection ? rejection.reason : 'Data scan ditolak.',
+              retryAfter: Date.now() + retryDelays[nextRetryCount - 1]
+            };
+            retryingScans.push(retryEntry);
+            return [retryEntry];
+          }
+          return [entry];
         });
         localStorage.setItem(LOG_KEY, JSON.stringify(remaining));
         updateLogCount();
-        if (newlyRejected.length) {
-          const firstRejected = newlyRejected[0];
-          const moreCount = newlyRejected.length - 1;
-          const moreText = moreCount ? ` (+${moreCount} lainnya)` : '';
-          showToast(statusToast, `NIS ${firstRejected.nis}: ${firstRejected.rejectionReason}${moreText}`, 'error');
+        if (exhaustedScans.length) {
+          showToast(statusToast, `${exhaustedScans.length} NIS dihapus setelah 3 kali retry otomatis.`, 'error');
+        } else if (retryingScans.length) {
+          const firstRetry = retryingScans[0];
+          const moreText = retryingScans.length > 1 ? ` (+${retryingScans.length - 1} lainnya)` : '';
+          showToast(statusToast, `NIS ${firstRetry.nis}: ${firstRetry.rejectionReason} Retry otomatis ${firstRetry.rejectionRetryCount}/3.${moreText}`, 'error');
         }
         retryDelayMs = 5000;
         nextQueueAttemptAt = 0;
-        shouldContinue = remaining.length > 0;
+        shouldContinue = remaining.some(entry => Number(entry.retryAfter || 0) <= Date.now());
         setTimeout(() => nisInput.focus(), 3000);
       } catch (error) {
         nextQueueAttemptAt = Date.now() + retryDelayMs;
@@ -608,6 +631,7 @@
 
     window.onload = function() {
       nisInput.focus();
+      restoreLegacyRejectedLogs();
       updateLogCount();
       setInterval(processQueue, 2000);
       processQueue();
@@ -621,7 +645,6 @@
     };
 
     fullscreenButton.addEventListener('click', toggleFullscreen);
-    retryRejectedButton.addEventListener('click', retryRejectedLogs);
 
     nisInput.addEventListener('input', function() {
       if (nisInput.value.length === 8) {

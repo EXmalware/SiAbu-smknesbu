@@ -511,6 +511,93 @@ h1 {
   font-weight: 700;
 }
 
+.pending-overlay {
+  width: min(270px, 27vw);
+  max-height: min(32vh, 260px);
+  padding: 13px;
+  position: fixed;
+  z-index: 20;
+  top: clamp(150px, 21vh, 220px);
+  right: 42px;
+  overflow: hidden;
+  border: 1px solid rgba(238, 229, 212, 0.24);
+  border-radius: 8px;
+  background: rgba(20, 55, 39, 0.94);
+  box-shadow: 0 12px 30px rgba(20, 55, 39, 0.2);
+  color: var(--paper-light);
+  pointer-events: none;
+  animation: pending-overlay-enter 180ms ease-out both;
+}
+
+.pending-overlay[hidden] {
+  display: none;
+}
+
+.pending-overlay-header {
+  min-height: 25px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(247, 242, 233, 0.78);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.pending-overlay-header strong {
+  min-width: 24px;
+  height: 24px;
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--coral);
+  color: #FFF9EF;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pending-live-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: var(--coral);
+  box-shadow: 0 0 0 4px rgba(242, 70, 46, 0.15);
+}
+
+.pending-overlay-list {
+  max-height: 202px;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+  overflow: hidden;
+  list-style: none;
+}
+
+.pending-overlay-list li {
+  min-height: 22px;
+  padding: 4px 8px;
+  overflow: hidden;
+  border-left: 2px solid var(--coral);
+  border-radius: 3px;
+  background: rgba(247, 242, 233, 0.1);
+  color: var(--paper-light);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes pending-overlay-enter {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 .toast-container {
   width: min(380px, calc(100% - 32px));
   position: fixed;
@@ -565,38 +652,6 @@ h1 {
   color: var(--green);
   opacity: 1;
   transform: none;
-}
-
-.queue-status {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.retry-rejected-button {
-  min-height: 36px;
-  padding: 0 14px;
-  border: 1px solid var(--coral);
-  border-radius: 6px;
-  background: var(--paper-light);
-  color: var(--green);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
-  text-align: left;
-}
-
-.retry-rejected-button:hover {
-  background: var(--green-soft);
-}
-
-.retry-rejected-button:focus-visible {
-  outline: 3px solid var(--green);
-  outline-offset: 2px;
-}
-
-.retry-rejected-button[hidden] {
-  display: none;
 }
 
 .scanner-overlay {
@@ -732,6 +787,30 @@ h1 {
     margin-top: auto;
   }
 
+  .pending-overlay {
+    width: min(170px, 42vw);
+    max-height: 132px;
+    padding: 10px;
+    top: clamp(96px, 14vh, 130px);
+    right: 20px;
+  }
+
+  .pending-overlay-list {
+    max-height: 77px;
+    gap: 4px;
+  }
+
+  .pending-overlay-list li:nth-child(n + 4) {
+    display: none;
+  }
+
+  .pending-overlay-list li {
+    min-height: 20px;
+    padding: 3px 6px;
+    font-size: 10px;
+    line-height: 14px;
+  }
+
   .toast-container {
     right: 20px;
     left: auto;
@@ -794,6 +873,21 @@ h1 {
     min-height: 32px;
     padding: 0 8px;
     font-size: 10px;
+  }
+
+  .pending-overlay {
+    width: min(150px, 43vw);
+    max-height: 114px;
+    top: 96px;
+    right: 14px;
+  }
+
+  .pending-overlay-list {
+    max-height: 58px;
+  }
+
+  .pending-overlay-list li:nth-child(n + 3) {
+    display: none;
   }
 
   .datetime-card {
