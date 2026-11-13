@@ -30,8 +30,7 @@ Panduan lengkap untuk deploy aplikasi SiAbu dengan arsitektur API-based (Backend
    ```javascript
    const SHEET_ID = "YOUR_GOOGLE_SHEETS_ID";
    ```
-5. Di **Project Settings** → **Script Properties**, tambahkan `SCANNER_PIN` dengan PIN kuat yang hanya diketahui petugas scanner. Jangan menaruh PIN di source code.
-7. Siapkan sheet bernama `GURU` dengan header `EMAIL`, `NIP`, `NAMA`, `PASSWORD`, `ROLE`. Nilai `ROLE` dapat `ADMIN`, `GURU`, atau `SUPERADMIN`; akun staf dapat login dengan NIP atau email. Tetapkan role `SUPERADMIN` langsung di sheet untuk akun tepercaya. Role ini tidak dapat diubah melalui aplikasi.
+5. Siapkan sheet bernama `GURU` dengan header `EMAIL`, `NIP`, `NAMA`, `PASSWORD`, `ROLE`. Nilai `ROLE` dapat `ADMIN`, `GURU`, atau `SUPERADMIN`; akun staf dapat login dengan NIP atau email. Tetapkan role `SUPERADMIN` langsung di sheet untuk akun tepercaya. Role ini tidak dapat diubah melalui aplikasi.
 
 > Admin dan superadmin dapat mengakses menu Kelola Guru. Endpoint daftar dan perubahan role memverifikasi ulang kredensial dan role dari sheet GURU. Role superadmin dan admin terakhir dilindungi agar tidak dapat diturunkan rolenya. Menu Pantau Absensi tersedia bagi guru, admin, dan superadmin untuk memilih kelas lalu melihat nama dan NIS siswa.
 
@@ -55,7 +54,7 @@ Panduan lengkap untuk deploy aplikasi SiAbu dengan arsitektur API-based (Backend
 
 - Buka halaman scanner pada masing-masing perangkat. Setiap perangkat menyimpan antrean lokal sendiri dan mengirim paling banyak 200 scan per batch, diperiksa setiap dua detik.
 - Backend memakai `LockService` untuk menyerialkan perubahan sheet dari beberapa perangkat. Jika permintaan gagal atau backend sibuk, scanner mempertahankan antrean dan mencoba lagi dengan jeda bertahap.
-- Setiap scanner perlu memasukkan PIN yang sama. Jangan membagikan URL/PIN ke publik; gunakan perangkat petugas dan ganti PIN jika diketahui pihak lain.
+- Endpoint scan tidak memakai PIN. Karena Web App diatur untuk akses publik, orang yang mengetahui NIS dapat mengirim permintaan scan; batasi penyebaran URL dan gunakan hanya di perangkat petugas.
 - Sinkronkan tanggal, waktu, dan zona waktu seluruh perangkat. Waktu scan berasal dari jam perangkat dan dipakai menentukan tanggal serta status masuk/pulang.
 - Coba dahulu dengan beberapa scanner dan data uji, lalu pantau eksekusi/quota Apps Script serta antrean tertunda sebelum dipakai untuk seluruh siswa.
 

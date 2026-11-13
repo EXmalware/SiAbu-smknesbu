@@ -343,15 +343,6 @@
     let nextQueueAttemptAt = 0;
     let retryDelayMs = 5000;
 
-    function getScannerPin() {
-      let scannerPin = sessionStorage.getItem('scanner_pin');
-      if (!scannerPin) {
-        scannerPin = window.prompt('Masukkan PIN scanner:');
-        if (scannerPin) sessionStorage.setItem('scanner_pin', scannerPin);
-      }
-      return scannerPin;
-    }
-
     function showToast(element, message, type) {
       element.textContent = message;
       element.className = `toast ${type} show`;
@@ -406,15 +397,13 @@
       const pending = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
       if (!pending.length) return;
       const log = pending.slice(0, 200);
-      const scannerPin = getScannerPin();
-      if (!scannerPin) return;
 
       isQueueProcessing = true;
       let shouldContinue = false;
       try {
         const response = await fetch(`${API_URL}?action=processLog`, {
           method: 'POST',
-          body: JSON.stringify({ logs: log, scannerPin })
+          body: JSON.stringify({ logs: log })
         });
         if (!response.ok) throw new Error(`API mengembalikan HTTP ${response.status}`);
 
@@ -438,9 +427,6 @@
         shouldContinue = remaining.length > 0;
         setTimeout(() => nisInput.focus(), 3000);
       } catch (error) {
-        if (String(error.message || error).includes('PIN scanner')) {
-          sessionStorage.removeItem('scanner_pin');
-        }
         nextQueueAttemptAt = Date.now() + retryDelayMs;
         retryDelayMs = Math.min(retryDelayMs * 2, 60000);
         showToast(statusToast, 'Gagal mengirim log: ' + error.message, 'error');

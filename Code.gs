@@ -84,13 +84,9 @@
     }
   }
 
-  function processLog(logData, scannerPin) {
+  function processLog(logData) {
     if (!Array.isArray(logData) || logData.length === 0 || logData.length > 200) {
       throw new Error("Batch scan harus berisi 1 sampai 200 data.");
-    }
-    const configuredPin = PropertiesService.getScriptProperties().getProperty("SCANNER_PIN");
-    if (!configuredPin || String(scannerPin || "") !== configuredPin) {
-      throw new Error("PIN scanner tidak valid atau belum dikonfigurasi.");
     }
 
     const logs = logData.map(log => {
@@ -270,7 +266,7 @@
       
       switch(action) {
         case 'processLog':
-          response = processLog(postData.logs, postData.scannerPin);
+          response = processLog(postData.logs);
           break;
 
         case 'login':
