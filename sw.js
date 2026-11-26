@@ -1,9 +1,9 @@
-const CACHE_NAME = "siabu-shell-v24";
+const CACHE_NAME = "siabu-shell-v27";
 const APP_SHELL_FILES = [
     "./",
     "./index.html",
-    "./css/styles.css?v=20261105-monthly-status-codes",
-    "./js/script.js?v=20261105-monthly-status-codes",
+    "./css/styles.css?v=20261126-student-photo-drive",
+    "./js/script.js?v=20261126-student-photo-drive",
     "./js/mock_data.js?v=20261105-monthly-status-codes",
     "./manifest.webmanifest",
     "./apple-touch-icon.png",

@@ -347,6 +347,7 @@
     const pendingOverlayList = document.getElementById('pending-overlay-list');
     let isProcessing = false;
     const LOG_KEY = 'attendance_log';
+    const SCANNER_ID_KEY = 'siabu_scanner_id';
     const LEGACY_REJECTED_LOG_KEY = 'attendance_rejected_log';
     let codeReader = null;
     let videoElement = null;
@@ -400,6 +401,17 @@
       return entry.id || `${entry.nis}:${new Date(entry.timestamp).toISOString()}`;
     }
 
+    function getScannerId() {
+      let scannerId = localStorage.getItem(SCANNER_ID_KEY);
+      if (!scannerId) {
+        scannerId = window.crypto && typeof window.crypto.randomUUID === 'function'
+          ? window.crypto.randomUUID()
+          : `scanner-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        localStorage.setItem(SCANNER_ID_KEY, scannerId);
+      }
+      return scannerId;
+    }
+
     function restoreLegacyRejectedLogs() {
       const rejected = JSON.parse(localStorage.getItem(LEGACY_REJECTED_LOG_KEY) || '[]');
       if (!rejected.length) return;
@@ -442,7 +454,11 @@
       try {
         const response = await fetch(`${API_URL}?action=processLog`, {
           method: 'POST',
-          body: JSON.stringify({ logs: log })
+          body: JSON.stringify({
+            logs: log,
+            scannerId: getScannerId(),
+            clientSentAt: new Date().toISOString()
+          })
         });
         if (!response.ok) throw new Error(`API mengembalikan HTTP ${response.status}`);
 

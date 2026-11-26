@@ -34,6 +34,8 @@ Panduan lengkap untuk deploy aplikasi SiAbu dengan arsitektur API-based (Backend
 
 > Admin dan superadmin dapat mengakses menu Kelola Guru. Endpoint daftar dan perubahan role memverifikasi ulang kredensial dan role dari sheet GURU. Role superadmin dan admin terakhir dilindungi agar tidak dapat diturunkan rolenya. Menu Pantau Absensi tersedia bagi guru, admin, dan superadmin untuk memilih kelas lalu melihat nama dan NIS siswa.
 
+> Upload foto siswa memerlukan kolom `FOTO OSIS` dan `FOTO PROFIL` pada sheet SISWA. Akun Google yang dipakai pada **Execute as: Me** harus memiliki akses editor ke kedua folder Drive foto yang dikonfigurasi di `Code.gs`. Foto tetap privat; sheet menyimpan ID file dan aplikasi mengambil thumbnail Drive melalui endpoint yang memeriksa sesi siswa. Folder/foto tidak perlu dibagikan secara publik.
+
 ### Step 3: Deploy sebagai Web App
 
 1. Klik **Deploy** → **New deployment**
@@ -49,6 +51,7 @@ Panduan lengkap untuk deploy aplikasi SiAbu dengan arsitektur API-based (Backend
    - URL ini menjadi API backend untuk dashboard dan halaman scanner.
    - Halaman scanner statis dibuka dari GitHub Pages di `/Reff/Index2.html`; tidak perlu membuat file HTML di Apps Script.
    - Kamera perlu izin browser dan halaman HTTPS. GitHub Pages menyediakan HTTPS.
+7. Jika diminta, izinkan akses Google Apps Script ke Google Drive untuk membaca dan menyimpan foto. Saat memperbarui deployment yang sudah ada, pilih **Edit** → **New version** → **Deploy**.
 
 ### Penggunaan Beberapa Scanner
 

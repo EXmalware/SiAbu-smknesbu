@@ -1,11 +1,16 @@
   const SHEET_ID = "19hVVj4YeXzm407382579_MLe9PbeBMO4H7KXoJfMEnE";
   const SHEET_ABSEN = "ABSEN";
+  const SHEET_ANOMALI = "ANOMALI";
   const SHEET_SISWA = "SISWA";
   const SHEET_GURU = "GURU";
   const SHEET_IZIN = "IZIN";
   const SHEET_EVENT = "EVENT";
   const SHEET_HARILIBUR = "HARILIBUR";
   const SHEET_PULANGCEPAT = "PULANGCEPAT";
+  const STUDENT_PHOTO_FOLDERS = {
+    osis: "1BhZOJuDIoZLOtQf9Zbb8cmYemPjJy3IG",
+    profil: "1vvWD3FJgqt_wNAGe6V8aXti1el57mFI_"
+  };
   const KTDS_FIELDS = [
     "NISN",
     "TEMPAT LAHIR",
@@ -84,11 +89,14 @@
     }
   }
 
-  function processLog(logData) {
+  function processLog(logData, clientSentAt, scannerId) {
     if (!Array.isArray(logData) || logData.length === 0 || logData.length > 200) {
       throw new Error("Batch scan harus berisi 1 sampai 200 data.");
     }
 
+    const requestReceivedAt = new Date();
+    const normalizedScannerId = String(scannerId || "").trim().slice(0, 100);
+    const clientSentTimestamp = new Date(clientSentAt);
     const logs = [];
     const rejectedScans = [];
     logData.forEach((log, index) => {
@@ -109,18 +117,6 @@
     });
 
     logs.sort((left, right) => left.timestamp - right.timestamp);
-    if (logs.length === 0) {
-      return {
-        status: "success",
-        message: `${rejectedScans.length} scan ditolak karena data tidak valid.`,
-        acknowledgedIds: [],
-        discardedIds: rejectedScans.map(scan => scan.id),
-        rejectedScans,
-        recordedIds: [],
-        recordedScans: [],
-        skippedDates: []
-      };
-    }
 
     const lock = LockService.getScriptLock();
     lock.waitLock(30000);
@@ -132,6 +128,31 @@
 
       const timeZone = spreadsheet.getSpreadsheetTimeZone();
       const eventDates = getEventDateKeys(spreadsheet);
+      const anomalyRecords = rejectedScans.map(scan => ({
+        id: `SCAN:${scan.id}:${scan.reason.startsWith("NIS ") ? "NIS_NOT_FOUND" : "INVALID_DATA"}`,
+        serverAt: requestReceivedAt,
+        scanAt: scan.timestamp instanceof Date && !Number.isNaN(scan.timestamp.getTime()) ? scan.timestamp : "",
+        scannerId: normalizedScannerId,
+        nis: scan.nis,
+        type: scan.reason.startsWith("NIS ") ? "NIS_TIDAK_TERDAFTAR" : "DATA_TIDAK_VALID",
+        detail: scan.reason
+      }));
+      if (!Number.isNaN(clientSentTimestamp.getTime())) {
+        const clockDifferenceMinutes = Math.round((clientSentTimestamp.getTime() - requestReceivedAt.getTime()) / 60000);
+        if (Math.abs(clockDifferenceMinutes) > 5) {
+          const serverDate = Utilities.formatDate(requestReceivedAt, timeZone, "yyyy-MM-dd");
+          anomalyRecords.push({
+            id: `CLOCK_SKEW:${normalizedScannerId || "UNKNOWN"}:${serverDate}`,
+            serverAt: requestReceivedAt,
+            scanAt: clientSentTimestamp,
+            scannerId: normalizedScannerId,
+            nis: "",
+            type: "JAM_PERANGKAT_BERBEDA",
+            detail: `Jam perangkat berbeda sekitar ${Math.abs(clockDifferenceMinutes)} menit dari server.`
+          });
+        }
+      }
+
       const siswa = getSiswaData(siswaSheet);
       const studentNames = new Map(siswa.rows.map(row => [
         String(row[siswa.columns.nis] || "").trim(),
@@ -143,6 +164,39 @@
         rejectedScans.push({ id: log.id, nis: log.nis, reason: "NIS tidak terdaftar." });
         return false;
       });
+
+      rejectedScans.filter(scan => scan.reason === "NIS tidak terdaftar.").forEach(scan => {
+        anomalyRecords.push({
+          id: `SCAN:${scan.id}:NIS_NOT_FOUND`,
+          serverAt: requestReceivedAt,
+          scanAt: logs.find(log => log.id === scan.id)?.timestamp || "",
+          scannerId: normalizedScannerId,
+          nis: scan.nis,
+          type: "NIS_TIDAK_TERDAFTAR",
+          detail: scan.reason
+        });
+      });
+
+      if (logs.length === 0 || validLogs.length === 0) {
+        let anomalyLogWarning = "";
+        try {
+          appendAttendanceAnomalies(spreadsheet, anomalyRecords);
+        } catch (error) {
+          anomalyLogWarning = error.message;
+          Logger.log("Attendance anomaly logging error: " + error.message);
+        }
+        return {
+          status: "success",
+          message: `${rejectedScans.length} scan ditolak; absensi valid tidak ditemukan dalam batch.`,
+          acknowledgedIds: [],
+          discardedIds: rejectedScans.map(scan => scan.id),
+          rejectedScans,
+          recordedIds: [],
+          recordedScans: [],
+          skippedDates: [],
+          anomalyLogWarning
+        };
+      }
 
       const lastColumn = absenSheet.getLastColumn();
       const headers = absenSheet.getRange(1, 1, 1, lastColumn).getDisplayValues()[0]
@@ -175,6 +229,7 @@
       const recordedIds = [];
       const recordedScans = [];
       const skippedDates = new Set();
+      let anomalyLogWarning = "";
       validLogs.forEach(log => {
         const dayKey = Utilities.formatDate(log.timestamp, timeZone, "yyyy-MM-dd");
         const dateParts = dayKey.split("-").map(Number);
@@ -203,12 +258,37 @@
           entry.row[columns.jamPulang] = "";
           entry.row[columns.keterangan] = "HB";
         } else {
-          const clock = Utilities.formatDate(log.timestamp, timeZone, "HH:mm:ss").split(":").map(Number);
+          const scanTimeStr = Utilities.formatDate(log.timestamp, timeZone, "HH:mm:ss");
+          const clock = scanTimeStr.split(":").map(Number);
           const scanSeconds = clock[0] * 3600 + clock[1] * 60 + clock[2];
           const isMasuk = scanSeconds <= 9 * 3600 + 30 * 60 + 59;
           const isPulang = scanSeconds >= 9 * 3600 + 31 * 60;
           const isFriday = dayOfWeek === 5;
           const jamPulangIdeal = isFriday ? 11 * 3600 + 25 * 60 : 15 * 3600 + 25 * 60;
+
+          if (scanSeconds < 4 * 3600 || scanSeconds > 23 * 3600) {
+            anomalyRecords.push({
+              id: `SCAN:${log.id}:OUTSIDE_TIME_RANGE`,
+              serverAt: requestReceivedAt,
+              scanAt: log.timestamp,
+              scannerId: normalizedScannerId,
+              nis: log.nis,
+              type: "WAKTU_SCAN_TIDAK_WAJAR",
+              detail: `Scan tercatat pada ${scanTimeStr}, di luar rentang 04.00–23.00.`
+            });
+          }
+
+          if (isPulang && !entry.row[columns.jamMasuk]) {
+            anomalyRecords.push({
+              id: `SCAN:${log.id}:RETURN_WITHOUT_ENTRY`,
+              serverAt: requestReceivedAt,
+              scanAt: log.timestamp,
+              scannerId: normalizedScannerId,
+              nis: log.nis,
+              type: "PULANG_TANPA_MASUK",
+              detail: `Scan pulang ${scanTimeStr} tidak memiliki catatan scan masuk pada hari yang sama.`
+            });
+          }
 
           if (isMasuk) {
             const current = entry.row[columns.jamMasuk];
@@ -229,6 +309,13 @@
         recordedScans.push({ id: log.id, nama: studentNames.get(log.nis) || "" });
       });
 
+      try {
+        appendAttendanceAnomalies(spreadsheet, anomalyRecords);
+      } catch (error) {
+        anomalyLogWarning = error.message;
+        Logger.log("Attendance anomaly logging error: " + error.message);
+      }
+
       updatedEntries.forEach(entry => {
         absenSheet.getRange(entry.rowNumber, 1, 1, lastColumn).setValues([entry.row]);
       });
@@ -246,10 +333,124 @@
         rejectedScans,
         recordedIds,
         recordedScans,
-        skippedDates: [...skippedDates]
+        skippedDates: [...skippedDates],
+        anomalyLogWarning
       };
     } finally {
       lock.releaseLock();
+    }
+  }
+
+  function appendAttendanceAnomalies(spreadsheet, anomalies) {
+    if (!anomalies || anomalies.length === 0) return 0;
+    const headers = [
+      "ID ANOMALI",
+      "WAKTU SERVER",
+      "WAKTU SCAN",
+      "ID SCANNER",
+      "NIS",
+      "JENIS",
+      "DETAIL"
+    ];
+    let sheet = spreadsheet.getSheetByName(SHEET_ANOMALI);
+    if (!sheet) sheet = spreadsheet.insertSheet(SHEET_ANOMALI);
+
+    const lastColumn = sheet.getLastColumn();
+    if (sheet.getLastRow() === 0 || lastColumn === 0) {
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    } else {
+      const currentHeaders = sheet.getRange(1, 1, 1, Math.max(lastColumn, headers.length))
+        .getDisplayValues()[0]
+        .slice(0, headers.length)
+        .map(value => String(value).trim().toUpperCase());
+      if (headers.some((header, index) => currentHeaders[index] !== header)) {
+        throw new Error(`Header sheet ${SHEET_ANOMALI} harus: ${headers.join(", ")}.`);
+      }
+    }
+
+    const lastRow = sheet.getLastRow();
+    const existingIds = new Set();
+    if (lastRow > 1) {
+      const firstCheckedRow = Math.max(2, lastRow - 9999);
+      sheet.getRange(firstCheckedRow, 1, lastRow - firstCheckedRow + 1, 1)
+        .getDisplayValues()
+        .forEach(row => existingIds.add(String(row[0] || "").trim()));
+    }
+
+    const rowsToWrite = [];
+    anomalies.forEach(anomaly => {
+      const id = String(anomaly.id || "").trim();
+      if (!id || existingIds.has(id)) return;
+      existingIds.add(id);
+      rowsToWrite.push([
+        id,
+        anomaly.serverAt || new Date(),
+        anomaly.scanAt || "",
+        String(anomaly.scannerId || ""),
+        String(anomaly.nis || ""),
+        String(anomaly.type || "ANOMALI"),
+        String(anomaly.detail || "")
+      ]);
+    });
+    if (rowsToWrite.length === 0) return 0;
+
+    const firstWriteRow = sheet.getLastRow() + 1;
+    sheet.getRange(firstWriteRow, 1, rowsToWrite.length, 1).setNumberFormat("@");
+    sheet.getRange(firstWriteRow, 4, rowsToWrite.length, 2).setNumberFormat("@");
+    sheet.getRange(firstWriteRow, 1, rowsToWrite.length, headers.length).setValues(rowsToWrite);
+    return rowsToWrite.length;
+  }
+
+  function getAttendanceAnomalies(sessionToken) {
+    try {
+      const staff = authenticateMonitoringStaff(sessionToken);
+      if (!['ADMIN', 'SUPERADMIN'].includes(staff.role)) {
+        throw new Error("Rekap anomali hanya tersedia untuk admin atau superadmin.");
+      }
+
+      const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+      const sheet = spreadsheet.getSheetByName(SHEET_ANOMALI);
+      if (!sheet || sheet.getLastRow() < 2) {
+        return { status: "success", total: 0, counts: {}, records: [] };
+      }
+
+      const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0]
+        .map(header => String(header).trim().toUpperCase());
+      const columns = {
+        id: headers.indexOf("ID ANOMALI"),
+        waktuServer: headers.indexOf("WAKTU SERVER"),
+        waktuScan: headers.indexOf("WAKTU SCAN"),
+        scannerId: headers.indexOf("ID SCANNER"),
+        nis: headers.indexOf("NIS"),
+        jenis: headers.indexOf("JENIS"),
+        detail: headers.indexOf("DETAIL")
+      };
+      const missingColumns = Object.keys(columns).filter(column => columns[column] === -1);
+      if (missingColumns.length) {
+        throw new Error("Header sheet ANOMALI tidak lengkap: " + missingColumns.join(", "));
+      }
+
+      const total = sheet.getLastRow() - 1;
+      const count = Math.min(total, 500);
+      const firstRow = sheet.getLastRow() - count + 1;
+      const rows = sheet.getRange(firstRow, 1, count, sheet.getLastColumn()).getDisplayValues();
+      const records = rows.reverse().map(row => ({
+        id: String(row[columns.id] || ""),
+        waktuServer: String(row[columns.waktuServer] || ""),
+        waktuScan: String(row[columns.waktuScan] || ""),
+        scannerId: String(row[columns.scannerId] || ""),
+        nis: String(row[columns.nis] || ""),
+        jenis: String(row[columns.jenis] || ""),
+        detail: String(row[columns.detail] || "")
+      }));
+      const counts = records.reduce((summary, record) => {
+        summary[record.jenis] = (summary[record.jenis] || 0) + 1;
+        return summary;
+      }, {});
+      return { status: "success", total, counts, records };
+    } catch (error) {
+      Logger.log("Get attendance anomalies error: " + error.message);
+      return { status: "error", message: error.message };
     }
   }
 
@@ -294,7 +495,11 @@
       
       switch(action) {
         case 'processLog':
-          response = processLog(postData.logs);
+          response = processLog(postData.logs, postData.clientSentAt, postData.scannerId);
+          break;
+
+        case 'getAttendanceAnomalies':
+          response = getAttendanceAnomalies(postData.sessionToken);
           break;
 
         case 'login':
@@ -315,6 +520,14 @@
 
         case 'saveKtds':
           response = saveKtds(postData);
+          break;
+
+        case 'getStudentPhotos':
+          response = getStudentPhotos(postData.sessionToken);
+          break;
+
+        case 'uploadStudentPhoto':
+          response = uploadStudentPhoto(postData);
           break;
 
         case 'getGuruList':
@@ -1843,6 +2056,10 @@
       if (missingFields.length) {
         throw new Error("Kolom KTDS tidak ditemukan di sheet SISWA: " + missingFields.join(", "));
       }
+      const osisPhotoColumn = headers.indexOf("FOTO OSIS");
+      if (osisPhotoColumn === -1) {
+        throw new Error("Kolom FOTO OSIS tidak ditemukan di sheet SISWA.");
+      }
 
       const row = student.data.rows[student.rowIndex];
       const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
@@ -1853,11 +2070,142 @@
           ? Utilities.formatDate(value, spreadsheet.getSpreadsheetTimeZone(), "yyyy-MM-dd")
           : value === null || value === undefined ? "" : String(value);
       });
+      values["FOTO OSIS"] = String(row[osisPhotoColumn] || "").trim() ? "uploaded" : "";
       return { status: "success", ktds: values };
     } catch (error) {
       Logger.log("Get KTDS error: " + error.message);
       return { status: "error", message: error.message };
     }
+  }
+
+  function getStudentPhotos(sessionToken) {
+    try {
+      const student = authenticateStudentSession(sessionToken);
+      const headers = student.sheet.getRange(1, 1, 1, student.sheet.getLastColumn())
+        .getDisplayValues()[0]
+        .map(header => String(header).trim().toUpperCase());
+      const photoFields = ["FOTO OSIS", "FOTO PROFIL"];
+      const missingFields = photoFields.filter(field => headers.indexOf(field) === -1);
+      if (missingFields.length) {
+        throw new Error("Kolom foto tidak ditemukan di sheet SISWA: " + missingFields.join(", "));
+      }
+
+      const row = student.data.rows[student.rowIndex];
+      return {
+        status: "success",
+        fotoOsis: getPrivateStudentPhotoDataUrl(
+          row[headers.indexOf("FOTO OSIS")],
+          STUDENT_PHOTO_FOLDERS.osis
+        ),
+        fotoProfil: getPrivateStudentPhotoDataUrl(
+          row[headers.indexOf("FOTO PROFIL")],
+          STUDENT_PHOTO_FOLDERS.profil
+        )
+      };
+    } catch (error) {
+      Logger.log("Get student photos error: " + error.message);
+      return { status: "error", message: error.message };
+    }
+  }
+
+  function uploadStudentPhoto(input) {
+    const data = input || {};
+    const lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(10000);
+      const photoType = String(data.photoType || "").trim().toLowerCase();
+      const photoFields = {
+        osis: "FOTO OSIS",
+        profil: "FOTO PROFIL"
+      };
+      const field = photoFields[photoType];
+      const folderId = STUDENT_PHOTO_FOLDERS[photoType];
+      if (!Object.prototype.hasOwnProperty.call(photoFields, photoType) || !field || !folderId) {
+        throw new Error("Jenis foto tidak valid.");
+      }
+
+      const mimeType = String(data.mimeType || "").trim().toLowerCase();
+      const extensions = {
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp"
+      };
+      if (!Object.prototype.hasOwnProperty.call(extensions, mimeType)) {
+        throw new Error("Format foto harus JPG, PNG, atau WEBP.");
+      }
+
+      const encodedPhoto = String(data.base64 || "").trim();
+      if (!encodedPhoto || encodedPhoto.length > 2800000 ||
+          !/^[A-Za-z0-9+/]+={0,2}$/.test(encodedPhoto)) {
+        throw new Error("Data foto tidak valid atau melebihi ukuran maksimum.");
+      }
+      const photoBytes = Utilities.base64Decode(encodedPhoto);
+      if (!photoBytes.length || photoBytes.length > 2 * 1024 * 1024) {
+        throw new Error("Ukuran foto maksimal 2 MB setelah diproses.");
+      }
+
+      const student = authenticateStudentSession(data.sessionToken);
+      const headers = student.sheet.getRange(1, 1, 1, student.sheet.getLastColumn())
+        .getDisplayValues()[0]
+        .map(header => String(header).trim().toUpperCase());
+      const photoColumn = headers.indexOf(field);
+      if (photoColumn === -1) {
+        throw new Error("Kolom " + field + " tidak ditemukan di sheet SISWA.");
+      }
+
+      const safeNis = String(student.nis).replace(/[^A-Za-z0-9_-]/g, "_");
+      const fileName = `${safeNis}_${photoType}_${Date.now()}.${extensions[mimeType]}`;
+      const blob = Utilities.newBlob(photoBytes, mimeType, fileName);
+      const folder = DriveApp.getFolderById(folderId);
+      const file = folder.createFile(blob);
+      const photoCell = student.sheet.getRange(student.rowIndex + 2, photoColumn + 1);
+      try {
+        photoCell.setNumberFormat("@");
+        photoCell.setValue(file.getId());
+      } catch (writeError) {
+        file.setTrashed(true);
+        throw writeError;
+      }
+
+      return {
+        status: "success",
+        message: photoType === "osis" ? "Foto OSIS berhasil disimpan." : "Foto profil berhasil disimpan.",
+        photoDataUrl: `data:${mimeType};base64,${Utilities.base64Encode(photoBytes)}`
+      };
+    } catch (error) {
+      Logger.log("Upload student photo error: " + error.message);
+      return { status: "error", message: error.message };
+    } finally {
+      if (lock.hasLock()) lock.releaseLock();
+    }
+  }
+
+  function getPrivateStudentPhotoDataUrl(fileId, expectedFolderId) {
+    const storedFileId = String(fileId || "").trim();
+    if (!storedFileId) return "";
+
+    const file = DriveApp.getFileById(storedFileId);
+    const parents = file.getParents();
+    let belongsToExpectedFolder = false;
+    while (parents.hasNext()) {
+      if (parents.next().getId() === expectedFolderId) {
+        belongsToExpectedFolder = true;
+        break;
+      }
+    }
+    if (!belongsToExpectedFolder) {
+      throw new Error("Foto tidak berada di folder Drive yang ditetapkan.");
+    }
+
+    const blob = file.getThumbnail();
+    if (!blob) {
+      throw new Error("Thumbnail foto belum tersedia di Google Drive. Coba muat ulang beberapa saat lagi.");
+    }
+    const mimeType = blob.getContentType();
+    if (!["image/jpeg", "image/png", "image/webp"].includes(mimeType)) {
+      throw new Error("File foto di Drive memiliki format yang tidak didukung.");
+    }
+    return `data:${mimeType};base64,${Utilities.base64Encode(blob.getBytes())}`;
   }
 
   function saveKtds(data) {

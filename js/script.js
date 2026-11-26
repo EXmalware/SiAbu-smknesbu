@@ -19,6 +19,10 @@ let staffSummaryCarouselPointer = null;
 let suppressStaffSummaryCardClick = false;
 let ktdsLoaded = false;
 let currentKtdsValues = {};
+let ktdsCompletionRequest = null;
+let ktdsCompletionRequestToken = null;
+let dashboardTodayAttendanceRequest = null;
+let dashboardTodayAttendanceRequestToken = null;
 const KTDS_FIELDS = [
     { name: "NISN", label: "NISN", type: "text" },
     { name: "TEMPAT LAHIR", label: "Tempat lahir", type: "text" },
@@ -41,6 +45,7 @@ const KTDS_FIELDS = [
     { name: "NOMER TELPON WALI SISWA", label: "Nomor telepon wali siswa", type: "tel" },
     { name: "PEKERJAAN WALI SISWA", label: "Pekerjaan wali siswa", type: "text" }
 ];
+const KTDS_COMPLETION_FIELDS = [...KTDS_FIELDS, { name: "FOTO OSIS" }];
 const MONTHLY_ATTENDANCE_STATUS_LABELS = {
     H: "Hadir",
     A: "Alpa",
@@ -448,7 +453,7 @@ function updateThemeLabel() {
 
 function showNotification(message, type) {
     const notificationBar = document.getElementById('notification-bar');
-    notificationBar.textContent = message;
+        notificationBar.textContent = message;
     notificationBar.className = '';
     notificationBar.classList.add(type);
     notificationBar.style.opacity = '1';
@@ -705,7 +710,12 @@ function showDashboardHome() {
     document.getElementById("staff-monthly-summary-panel").hidden = true;
     document.getElementById("staff-monthly-summary-content").replaceChildren();
     document.getElementById("staff-monthly-summary-note").hidden = true;
+    document.getElementById("staff-anomalies-panel").hidden = true;
+    document.getElementById("staff-anomalies-content").replaceChildren();
+    document.getElementById("staff-anomalies-summary").replaceChildren();
+    document.getElementById("staff-anomalies-status").textContent = "";
     const isStudent = !currentUser || currentUser.role === "SISWA";
+    document.getElementById("student-today-attendance").hidden = !isStudent;
     document.getElementById("staff-menu-grid").hidden = isStudent;
     document.getElementById("staff-dashboard-note").hidden = isStudent;
     setDashboardMenuView(false);
@@ -726,6 +736,10 @@ function showDashboardHome() {
         if (String(currentUser.role || "").toUpperCase() === "GURU") {
             loadTeacherHomeroomClass();
         }
+    }
+    if (currentUser && currentUser.role === "SISWA") {
+        loadKtdsCompletionBadge();
+        loadDashboardTodayAttendance();
     }
 }
 
@@ -752,6 +766,7 @@ function configureDashboardForRole(role) {
     document.getElementById("staff-early-dismissal-menu").hidden = role !== "SUPERADMIN";
     document.getElementById("staff-alpha-students-menu").hidden = !isAdmin;
     document.getElementById("staff-monthly-summary-menu").hidden = isStudent;
+    document.getElementById("staff-anomaly-menu").hidden = !isAdmin;
     document.getElementById("dashboard-student-class").hidden = !isStudent;
     document.getElementById("dashboard-homeroom-class").hidden = role !== "GURU";
     document.getElementById("dashboard-homeroom-class").textContent = "";
@@ -924,15 +939,16 @@ function updateDashboardStudentClass() {
 
 function showStaffFeature(feature) {
     const role = currentUser && String(currentUser.role || "").toUpperCase();
+    document.getElementById("staff-anomalies-panel").hidden = true;
     if (!["ADMIN", "GURU", "SUPERADMIN"].includes(role)) {
         showNotification("Menu ini hanya tersedia untuk akun admin atau guru.", "error");
         return;
     }
-    if (!["monitoring", "manage", "events", "holidays", "earlyDismissals", "permissions", "alphaStudents", "monthlySummary"].includes(feature)) {
+    if (!["monitoring", "manage", "events", "holidays", "earlyDismissals", "permissions", "alphaStudents", "monthlySummary", "anomalies"].includes(feature)) {
         showNotification("Menu staf tidak dikenal.", "error");
         return;
     }
-    if (feature === "manage" && !["ADMIN", "SUPERADMIN"].includes(role)) {
+        if (feature === "manage" && !["ADMIN", "SUPERADMIN"].includes(role)) {
         showNotification("Hanya admin atau superadmin yang dapat mengelola data guru.", "error");
         return;
     }
@@ -958,6 +974,16 @@ function showStaffFeature(feature) {
     }
     if (feature === "monthlySummary" && !["GURU", "ADMIN", "SUPERADMIN"].includes(role)) {
         showNotification("Rekap bulanan hanya tersedia untuk akun staf.", "error");
+        return;
+    }
+    if (feature === "anomalies" && !["ADMIN", "SUPERADMIN"].includes(role)) {
+        showNotification("Rekap anomali hanya tersedia untuk admin atau superadmin.", "error");
+        return;
+    }
+
+    document.getElementById("staff-anomalies-panel").hidden = true;
+    if (feature === "anomalies") {
+        showAttendanceAnomalies();
         return;
     }
 
@@ -990,6 +1016,107 @@ function showStaffFeature(feature) {
         return;
     }
     showStaffMonitoring();
+}
+
+function showAttendanceAnomalies() {
+    if (!currentUser || !["ADMIN", "SUPERADMIN"].includes(String(currentUser.role || "").toUpperCase())) {
+        showNotification("Rekap anomali hanya tersedia untuk admin atau superadmin.", "error");
+        return;
+    }
+    setDashboardMenuView(true);
+    document.getElementById("staff-dashboard-note").hidden = true;
+    document.getElementById("staff-menu-grid").hidden = true;
+    document.getElementById("staff-directory-panel").hidden = true;
+    document.getElementById("staff-monitoring-panel").hidden = true;
+    document.getElementById("staff-event-panel").hidden = true;
+    document.getElementById("staff-holiday-panel").hidden = true;
+    document.getElementById("staff-early-dismissal-panel").hidden = true;
+    document.getElementById("staff-permission-panel").hidden = true;
+    document.getElementById("staff-alpha-students-panel").hidden = true;
+    document.getElementById("staff-monthly-summary-panel").hidden = true;
+    document.getElementById("staff-anomalies-panel").hidden = false;
+    setActiveDashboardPanel("anomalies");
+    loadAttendanceAnomalies();
+}
+
+async function loadAttendanceAnomalies() {
+    const status = document.getElementById("staff-anomalies-status");
+    const count = document.getElementById("staff-anomalies-count");
+    const summary = document.getElementById("staff-anomalies-summary");
+    const content = document.getElementById("staff-anomalies-content");
+    status.textContent = "Memuat rekap anomali...";
+    status.classList.remove("is-error");
+    summary.replaceChildren();
+    content.replaceChildren();
+
+    try {
+        const result = await apiCall("getAttendanceAnomalies", "POST", {
+            sessionToken: currentUser && currentUser.sessionToken
+        });
+        if (!result || result.status !== "success" || !Array.isArray(result.records)) {
+            throw new Error(result && result.message ? result.message : "Rekap anomali tidak dapat dimuat.");
+        }
+
+        const categoryLabels = [
+            ["NIS_TIDAK_TERDAFTAR", "NIS tidak terdaftar"],
+            ["DATA_TIDAK_VALID", "Data scan tidak valid"],
+            ["JAM_PERANGKAT_BERBEDA", "Jam perangkat berbeda"],
+            ["WAKTU_SCAN_TIDAK_WAJAR", "Waktu scan tidak wajar"],
+            ["PULANG_TANPA_MASUK", "Pulang tanpa scan masuk"]
+        ];
+        const categoryCounts = result.records.reduce((counts, record) => {
+            counts[record.jenis] = (counts[record.jenis] || 0) + 1;
+            return counts;
+        }, {});
+        count.textContent = `${result.total || 0} catatan · menampilkan ${result.records.length} terbaru`;
+        categoryLabels.forEach(([type, label]) => {
+            const card = document.createElement("div");
+            card.className = "staff-anomaly-stat";
+            const value = document.createElement("strong");
+            value.textContent = String(categoryCounts[type] || 0);
+            const caption = document.createElement("span");
+            caption.textContent = label;
+            card.append(value, caption);
+            summary.appendChild(card);
+        });
+
+        if (!result.records.length) {
+            status.textContent = "Belum ada kesalahan atau anomali yang tercatat.";
+            return;
+        }
+
+        const table = document.createElement("table");
+        table.className = "staff-directory-table staff-anomaly-table";
+        const thead = document.createElement("thead");
+        const headingRow = document.createElement("tr");
+        ["Waktu server", "Waktu scan", "NIS", "ID scanner", "Jenis", "Detail"].forEach(label => {
+            const cell = document.createElement("th");
+            cell.scope = "col";
+            cell.textContent = label;
+            headingRow.appendChild(cell);
+        });
+        thead.appendChild(headingRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+        result.records.forEach(record => {
+            const row = document.createElement("tr");
+            [record.waktuServer, record.waktuScan, record.nis, record.scannerId, record.jenis, record.detail]
+                .forEach(value => {
+                    const cell = document.createElement("td");
+                    cell.textContent = String(value || "-");
+                    row.appendChild(cell);
+                });
+            tbody.appendChild(row);
+        });
+        table.appendChild(tbody);
+        content.appendChild(table);
+        status.textContent = "";
+    } catch (error) {
+        status.textContent = error.message || "Rekap anomali tidak dapat dimuat.";
+        status.classList.add("is-error");
+        count.textContent = "Rekap gagal dimuat";
+    }
 }
 
 async function refreshStaffFeature(feature, button) {
@@ -1035,6 +1162,11 @@ async function refreshStaffFeature(feature, button) {
                 throw new Error("Rekap bulanan hanya tersedia untuk akun staf.");
             }
             await loadMonthlyAttendanceClasses(true);
+        } else if (feature === "anomalies") {
+            if (!["ADMIN", "SUPERADMIN"].includes(String(currentUser.role || "").toUpperCase())) {
+                throw new Error("Rekap anomali hanya tersedia untuk admin atau superadmin.");
+            }
+            await loadAttendanceAnomalies();
         } else {
             throw new Error("Menu staf tidak dikenal.");
         }
@@ -2531,8 +2663,8 @@ function showStudentQrModal() {
             text: qrNis,
             width: 220,
             height: 220,
-            colorDark: "#17233c",
-            colorLight: "#ffffff",
+            colorDark: "#1b1a19",
+            colorLight: "#f3eee5",
             correctLevel: window.QRCode.CorrectLevel.M
         });
         message.textContent = "";
@@ -2613,6 +2745,30 @@ function showKtdsPanel() {
     loadKtds();
 }
 
+async function openDigitalStudentCard() {
+    if (!currentUser || currentUser.role !== "SISWA") {
+        showNotification("Kartu Pelajar Digital hanya tersedia untuk akun siswa.", "error");
+        return;
+    }
+    if (!currentUser.sessionToken) {
+        showNotification("Sesi login perlu diperbarui. Silakan keluar dan masuk kembali.", "error");
+        return;
+    }
+
+    const completion = await loadKtdsCompletionBadge();
+    if (completion === null || completion === undefined) {
+        showNotification("Kelengkapan KTDS tidak dapat diperiksa. Coba muat ulang KTDS.", "error");
+        return;
+    }
+    if (completion < 100) {
+        showKtdsPanel();
+        showNotification(`Lengkapi KTDS hingga 100% untuk membuka Kartu Pelajar Digital. Saat ini ${completion}%.`, "info");
+        return;
+    }
+
+    showNotification("Kartu Pelajar Digital masih dalam pengembangan.", "info");
+}
+
 function updateKtdsClass() {
     const classElement = document.getElementById("ktdsClass");
     if (!classElement) return;
@@ -2622,6 +2778,78 @@ function updateKtdsClass() {
         : "";
     classElement.textContent = className;
     classElement.hidden = !className;
+}
+
+function updateKtdsCompletionBadge(values = {}) {
+    const badge = document.getElementById("ktds-completion-badge");
+    if (!badge) return;
+
+    const filledCount = KTDS_COMPLETION_FIELDS.filter(field => {
+        const value = values[field.name];
+        return value !== null && value !== undefined && String(value).trim() !== "";
+    }).length;
+    const percentage = Math.round((filledCount / KTDS_COMPLETION_FIELDS.length) * 100);
+    const states = ["is-loading", "is-error", "is-low", "is-mid", "is-half", "is-high", "is-complete"];
+    badge.classList.remove(...states);
+    if (percentage === 100) badge.classList.add("is-complete");
+    else if (percentage >= 75) badge.classList.add("is-high");
+    else if (percentage >= 50) badge.classList.add("is-half");
+    else if (percentage >= 25) badge.classList.add("is-mid");
+    else badge.classList.add("is-low");
+
+    badge.textContent = `${percentage}%`;
+    badge.title = `${filledCount} dari ${KTDS_COMPLETION_FIELDS.length} data KTDS dan Foto OSIS terisi`;
+    badge.setAttribute("aria-valuenow", String(percentage));
+    badge.setAttribute("aria-valuetext", `${filledCount} dari ${KTDS_COMPLETION_FIELDS.length} data KTDS dan Foto OSIS terisi`);
+    badge.setAttribute("aria-busy", "false");
+    return percentage;
+}
+
+async function loadKtdsCompletionBadge() {
+    if (!currentUser || currentUser.role !== "SISWA" || !currentUser.sessionToken) return null;
+    const badge = document.getElementById("ktds-completion-badge");
+    if (!badge) return null;
+
+    const sessionToken = currentUser.sessionToken;
+    if (ktdsCompletionRequest && ktdsCompletionRequestToken === sessionToken) {
+        return ktdsCompletionRequest;
+    }
+
+    badge.classList.remove("is-error", "is-low", "is-mid", "is-half", "is-high", "is-complete");
+    badge.classList.add("is-loading");
+    badge.textContent = "…";
+    badge.title = "Memuat kelengkapan KTDS";
+    badge.setAttribute("aria-busy", "true");
+    badge.removeAttribute("aria-valuenow");
+    badge.removeAttribute("aria-valuetext");
+
+    ktdsCompletionRequestToken = sessionToken;
+    ktdsCompletionRequest = (async () => {
+        try {
+            const result = await apiCall("getKtds", "POST", { sessionToken });
+            if (!result || result.status !== "success" || !result.ktds) {
+                throw new Error(result && result.message ? result.message : "Data KTDS tidak dapat dimuat.");
+            }
+            if (!currentUser || currentUser.sessionToken !== sessionToken) return null;
+            return updateKtdsCompletionBadge(result.ktds);
+        } catch (error) {
+            if (!currentUser || currentUser.sessionToken !== sessionToken) return;
+            badge.classList.remove("is-loading", "is-low", "is-mid", "is-half", "is-high", "is-complete");
+            badge.classList.add("is-error");
+            badge.textContent = "--";
+            badge.title = "Kelengkapan KTDS tidak dapat dimuat";
+            badge.setAttribute("aria-busy", "false");
+            badge.removeAttribute("aria-valuenow");
+            badge.removeAttribute("aria-valuetext");
+            return null;
+        } finally {
+            if (ktdsCompletionRequestToken === sessionToken) {
+                ktdsCompletionRequest = null;
+                ktdsCompletionRequestToken = null;
+            }
+        }
+    })();
+    return ktdsCompletionRequest;
 }
 
 function renderKtdsForm(values = {}) {
@@ -2705,9 +2933,13 @@ async function loadKtds() {
     const fields = document.getElementById("ktds-fields");
     const saveButton = document.getElementById("ktds-save-button");
     const editButton = document.getElementById("ktds-edit-button");
+    const osisPhotoInput = document.getElementById("ktds-osis-photo-input");
+    const osisPhotoButton = document.getElementById("ktds-osis-photo-upload-button");
     ktdsLoaded = false;
     saveButton.disabled = true;
     editButton.disabled = true;
+    osisPhotoInput.disabled = true;
+    osisPhotoButton.disabled = true;
     document.getElementById("ktds-form").hidden = true;
     document.getElementById("ktds-readonly-fields").hidden = false;
     editButton.hidden = false;
@@ -2733,11 +2965,15 @@ async function loadKtds() {
             throw new Error(result && result.message ? result.message : "Data KTDS tidak dapat dimuat.");
         }
         currentKtdsValues = { ...result.ktds };
+        updateKtdsCompletionBadge(currentKtdsValues);
         renderKtdsReadOnly(currentKtdsValues);
         renderKtdsForm(result.ktds);
+        await loadStudentPhotos();
         ktdsLoaded = true;
         saveButton.disabled = false;
         editButton.disabled = false;
+        osisPhotoInput.disabled = false;
+        osisPhotoButton.disabled = false;
         status.textContent = "Periksa dan lengkapi data diri Anda.";
     } catch (error) {
         status.textContent = error.message;
@@ -2843,12 +3079,160 @@ async function loadProfile() {
                 currentUser.kelas = className;
                 updateKtdsClass();
             }
+            await loadStudentPhotos();
         } else {
             showNotification(res.message, "error");
         }
     } catch (err) {
         hideLoading();
         showNotification("Terjadi kesalahan saat memuat profil: " + err.message, "error");
+    }
+}
+
+function updateStudentPhotoPreview(photoType, photoDataUrl) {
+    const isProfilePhoto = photoType === "profil";
+    const preview = document.getElementById(isProfilePhoto
+        ? "profile-photo-preview"
+        : "ktds-osis-photo-preview");
+    const status = document.getElementById(isProfilePhoto
+        ? "profile-photo-status"
+        : "ktds-osis-photo-status");
+
+    if (photoDataUrl) {
+        preview.src = photoDataUrl;
+        preview.hidden = false;
+        if (isProfilePhoto) {
+            document.getElementById("profile-photo-placeholder").hidden = true;
+        } else {
+            status.textContent = "Foto OSIS tersimpan dan digunakan untuk kartu pelajar.";
+        }
+        return;
+    }
+
+    preview.removeAttribute("src");
+    preview.hidden = true;
+    if (isProfilePhoto) {
+        document.getElementById("profile-photo-placeholder").hidden = false;
+        status.textContent = "Foto profil belum diunggah (opsional).";
+    } else {
+        status.textContent = "Foto OSIS wajib diunggah agar KTDS mencapai 100%.";
+    }
+}
+
+async function loadStudentPhotos() {
+    if (!currentUser || currentUser.role !== "SISWA" || !currentUser.sessionToken) return;
+    try {
+        const result = await apiCall("getStudentPhotos", "POST", {
+            sessionToken: currentUser.sessionToken
+        });
+        if (!result || result.status !== "success") {
+            throw new Error(result && result.message ? result.message : "Foto siswa tidak dapat dimuat.");
+        }
+        updateStudentPhotoPreview("profil", result.fotoProfil || "");
+        updateStudentPhotoPreview("osis", result.fotoOsis || "");
+    } catch (error) {
+        const message = `Foto siswa tidak dapat dimuat: ${error.message}`;
+        document.getElementById("profile-photo-status").textContent = message;
+        document.getElementById("ktds-osis-photo-status").textContent = message;
+        showNotification(message, "error");
+    }
+}
+
+async function prepareStudentPhoto(file) {
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+        throw new Error("Pilih foto berformat JPG, PNG, atau WEBP.");
+    }
+    if (file.size > 15 * 1024 * 1024) {
+        throw new Error("Ukuran foto sumber maksimal 15 MB.");
+    }
+
+    const imageUrl = URL.createObjectURL(file);
+    try {
+        const image = await new Promise((resolve, reject) => {
+            const element = new Image();
+            element.onload = () => resolve(element);
+            element.onerror = () => reject(new Error("Foto tidak dapat dibaca."));
+            element.src = imageUrl;
+        });
+        const longestSide = Math.max(image.naturalWidth, image.naturalHeight);
+        if (!longestSide) throw new Error("Dimensi foto tidak valid.");
+
+        const scale = Math.min(1, 1600 / longestSide);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(image.naturalWidth * scale);
+        canvas.height = Math.round(image.naturalHeight * scale);
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("Foto tidak dapat diproses di browser ini.");
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.84));
+        if (!blob) throw new Error("Foto gagal dikompres.");
+        if (blob.size > 2 * 1024 * 1024) {
+            throw new Error("Ukuran foto setelah dikompres melebihi 2 MB. Pilih foto lain.");
+        }
+
+        const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => typeof reader.result === "string"
+                ? resolve(reader.result)
+                : reject(new Error("Foto gagal dibaca."));
+            reader.onerror = () => reject(new Error("Foto gagal dibaca."));
+            reader.readAsDataURL(blob);
+        });
+        return {
+            mimeType: blob.type,
+            base64: dataUrl.slice(dataUrl.indexOf(",") + 1)
+        };
+    } finally {
+        URL.revokeObjectURL(imageUrl);
+    }
+}
+
+async function uploadStudentPhoto(photoType, input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const status = document.getElementById(photoType === "profil"
+        ? "profile-photo-status"
+        : "ktds-osis-photo-status");
+    if (!currentUser || currentUser.role !== "SISWA" || !currentUser.sessionToken) {
+        status.textContent = "Sesi login perlu diperbarui. Silakan keluar dan masuk kembali.";
+        input.value = "";
+        return;
+    }
+
+    input.disabled = true;
+    const uploadButton = photoType === "osis"
+        ? document.getElementById("ktds-osis-photo-upload-button")
+        : null;
+    if (uploadButton) uploadButton.disabled = true;
+    status.textContent = "Menyiapkan foto...";
+    try {
+        const photo = await prepareStudentPhoto(file);
+        status.textContent = "Mengunggah foto...";
+        const result = await apiCall("uploadStudentPhoto", "POST", {
+            sessionToken: currentUser.sessionToken,
+            photoType,
+            mimeType: photo.mimeType,
+            base64: photo.base64
+        });
+        if (!result || result.status !== "success" || !result.photoDataUrl) {
+            throw new Error(result && result.message ? result.message : "Foto gagal disimpan.");
+        }
+
+        updateStudentPhotoPreview(photoType, result.photoDataUrl);
+        if (photoType === "osis") {
+            currentKtdsValues["FOTO OSIS"] = "uploaded";
+            updateKtdsCompletionBadge(currentKtdsValues);
+        }
+        showNotification(result.message || "Foto berhasil disimpan.", "success");
+    } catch (error) {
+        status.textContent = error.message;
+        showNotification(`Foto gagal diunggah: ${error.message}`, "error");
+    } finally {
+        input.disabled = false;
+        if (uploadButton) uploadButton.disabled = !ktdsLoaded;
+        input.value = "";
     }
 }
 
@@ -2913,6 +3297,100 @@ function toggleProfilePasswordVisibility() {
     toggleButton.setAttribute("aria-label", showPassword ? "Sembunyikan password baru" : "Tampilkan password baru");
     toggleButton.setAttribute("aria-pressed", String(showPassword));
     toggleButton.innerHTML = `<i class="fas ${showPassword ? "fa-eye-slash" : "fa-eye"}" aria-hidden="true"></i>`;
+}
+
+async function loadDashboardTodayAttendance(forceRefresh = false) {
+    const banner = document.getElementById("student-today-attendance");
+    if (!banner || !currentUser || currentUser.role !== "SISWA" || !currentUser.sessionToken) return;
+
+    const sessionToken = currentUser.sessionToken;
+    if (!forceRefresh && dashboardTodayAttendanceRequest &&
+        dashboardTodayAttendanceRequestToken === sessionToken) {
+        return dashboardTodayAttendanceRequest;
+    }
+
+    const message = document.getElementById("student-today-attendance-message");
+    const jamMasuk = document.getElementById("student-today-jam-masuk");
+    const jamPulang = document.getElementById("student-today-jam-pulang");
+    const retryButton = document.getElementById("student-today-attendance-retry");
+    const setState = state => {
+        banner.classList.remove("is-loading", "is-error", "is-weekend", "is-holiday", "is-event", "is-recorded");
+        if (state) banner.classList.add(state);
+    };
+
+    banner.hidden = false;
+    setState("is-loading");
+    message.textContent = "Memuat data kehadiran...";
+    jamMasuk.textContent = "-";
+    jamPulang.textContent = "-";
+    retryButton.hidden = true;
+
+    const today = new Date();
+    const month = String(today.getMonth() + 1);
+    const year = String(today.getFullYear());
+    const todayKey = `${String(today.getDate()).padStart(2, "0")}-${month.padStart(2, "0")}-${year}`;
+    const request = Promise.resolve().then(async () => {
+        try {
+            const result = await apiCall("getRiwayatAbsen", "GET", {
+                nis: currentUser.nis,
+                bulan: month,
+                tahun: year
+            });
+            if (result && result.status === "error") {
+                throw new Error(result.message || "Data absensi tidak dapat dimuat.");
+            }
+            if (!Array.isArray(result)) throw new Error("Format data absensi tidak valid.");
+            if (!currentUser || currentUser.sessionToken !== sessionToken) return;
+
+            const todayRecord = result.find(record => String(record.tanggal || "") === todayKey);
+            if (!todayRecord) throw new Error("Data absensi hari ini belum tersedia.");
+
+            const status = String(todayRecord.keterangan || "").trim().toUpperCase();
+            const masuk = String(todayRecord.jamMasuk || "").trim() || "-";
+            const pulang = String(todayRecord.jamPulang || "").trim() || "-";
+            jamMasuk.textContent = masuk;
+            jamPulang.textContent = pulang;
+
+            if (status === "OFF") {
+                const isWeekend = today.getDay() === 0 || today.getDay() === 6;
+                setState(isWeekend ? "is-weekend" : "is-holiday");
+                message.textContent = isWeekend
+                    ? "Hari ini tidak perlu absen. Silakan beristirahat."
+                    : "Hari ini libur sekolah. Tidak perlu absen.";
+            } else if (status === "HB") {
+                setState("is-event");
+                message.textContent = "Hari ini berlangsung kegiatan khusus sekolah.";
+            } else if (status === "A" && (today.getDay() === 0 || today.getDay() === 6)) {
+                setState("is-event");
+                message.textContent = "Ada kegiatan terjadwal hari ini.";
+            } else if (status === "I" || status === "S") {
+                setState("is-recorded");
+                message.textContent = status === "I"
+                    ? "Hari ini tercatat izin."
+                    : "Hari ini tercatat sakit.";
+            } else if (masuk === "-" && pulang === "-") {
+                setState("");
+                message.textContent = "Belum ada catatan absensi hari ini.";
+            } else {
+                setState("is-recorded");
+                message.textContent = "Catatan absensi hari ini sudah dimuat.";
+            }
+        } catch (error) {
+            if (!currentUser || currentUser.sessionToken !== sessionToken) return;
+            setState("is-error");
+            message.textContent = "Data kehadiran hari ini belum dapat dimuat.";
+            retryButton.hidden = false;
+        } finally {
+            if (dashboardTodayAttendanceRequest === request) {
+                dashboardTodayAttendanceRequest = null;
+                dashboardTodayAttendanceRequestToken = null;
+            }
+        }
+    });
+
+    dashboardTodayAttendanceRequest = request;
+    dashboardTodayAttendanceRequestToken = sessionToken;
+    return request;
 }
 
 async function filterData() {

@@ -36,6 +36,7 @@ const MOCK_KTDS_FIELDS = [
     "ALAMAT WALI SISWA", "NOMER TELPON WALI SISWA", "PEKERJAAN WALI SISWA"
 ];
 const MOCK_STUDENT_KTDS = new Map();
+const MOCK_STUDENT_PHOTOS = new Map();
 
 function authenticateMockStudent(sessionToken) {
     const nis = MOCK_STUDENT_SESSIONS.get(String(sessionToken || ""));
@@ -47,6 +48,13 @@ function getMockKtds(nis) {
         MOCK_STUDENT_KTDS.set(nis, Object.fromEntries(MOCK_KTDS_FIELDS.map(field => [field, ""])));
     }
     return MOCK_STUDENT_KTDS.get(nis);
+}
+
+function getMockStudentPhotos(nis) {
+    if (!MOCK_STUDENT_PHOTOS.has(nis)) {
+        MOCK_STUDENT_PHOTOS.set(nis, { fotoOsis: "", fotoProfil: "" });
+    }
+    return MOCK_STUDENT_PHOTOS.get(nis);
 }
 
 function authenticateMockManager(sessionToken) {
@@ -98,7 +106,13 @@ const MOCK_DATA = {
     getKtds: ({ sessionToken } = {}) => {
         const student = authenticateMockStudent(sessionToken);
         if (!student) return { status: "error", message: "Sesi siswa tidak valid. Silakan masuk kembali." };
-        return { status: "success", ktds: { ...getMockKtds(student.nis) } };
+        return {
+            status: "success",
+            ktds: {
+                ...getMockKtds(student.nis),
+                "FOTO OSIS": getMockStudentPhotos(student.nis).fotoOsis ? "uploaded" : ""
+            }
+        };
     },
     saveKtds: ({ sessionToken, ktds } = {}) => {
         const student = authenticateMockStudent(sessionToken);
@@ -132,6 +146,29 @@ const MOCK_DATA = {
             profile[field] = values[field];
         });
         return { status: "success", message: "Keterangan diri siswa berhasil diperbarui." };
+    },
+    getStudentPhotos: ({ sessionToken } = {}) => {
+        const student = authenticateMockStudent(sessionToken);
+        if (!student) return { status: "error", message: "Sesi siswa tidak valid. Silakan masuk kembali." };
+        return { status: "success", ...getMockStudentPhotos(student.nis) };
+    },
+    uploadStudentPhoto: ({ sessionToken, photoType, mimeType, base64 } = {}) => {
+        const student = authenticateMockStudent(sessionToken);
+        if (!student) return { status: "error", message: "Sesi siswa tidak valid. Silakan masuk kembali." };
+        if (!["osis", "profil"].includes(photoType) ||
+            !["image/jpeg", "image/png", "image/webp"].includes(mimeType) ||
+            !base64) {
+            return { status: "error", message: "Data foto simulasi tidak valid." };
+        }
+        const photos = getMockStudentPhotos(student.nis);
+        const photoDataUrl = `data:${mimeType};base64,${base64}`;
+        if (photoType === "osis") photos.fotoOsis = photoDataUrl;
+        else photos.fotoProfil = photoDataUrl;
+        return {
+            status: "success",
+            message: photoType === "osis" ? "Foto OSIS (Mock) berhasil disimpan." : "Foto profil (Mock) berhasil disimpan.",
+            photoDataUrl
+        };
     },
     getGuruList: ({ sessionToken } = {}) => {
         if (!authenticateMockManager(sessionToken)) {

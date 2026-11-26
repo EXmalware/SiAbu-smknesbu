@@ -2597,6 +2597,31 @@ body.dark-mode .login-input-wrap {
   box-shadow: none;
 }
 
+.login-input-wrap input:-webkit-autofill,
+.login-input-wrap input:-webkit-autofill:hover,
+.login-input-wrap input:-webkit-autofill:focus,
+.login-input-wrap input:-webkit-autofill:active {
+  -webkit-text-fill-color: #17233c;
+  caret-color: #17233c;
+  border: 0;
+  outline: 0;
+  -webkit-box-shadow: 0 0 0 1000px transparent inset;
+  box-shadow: 0 0 0 1000px transparent inset;
+  background: transparent !important;
+  background-clip: padding-box;
+  transition: background-color 9999s ease-out 0s;
+}
+
+body.dark-mode .login-input-wrap input:-webkit-autofill,
+body.dark-mode .login-input-wrap input:-webkit-autofill:hover,
+body.dark-mode .login-input-wrap input:-webkit-autofill:focus,
+body.dark-mode .login-input-wrap input:-webkit-autofill:active {
+  -webkit-text-fill-color: #f1f5fb;
+  caret-color: #f1f5fb;
+  -webkit-box-shadow: 0 0 0 1000px rgba(17, 24, 39, 0.01) inset;
+  box-shadow: 0 0 0 1000px rgba(17, 24, 39, 0.01) inset;
+}
+
 .password-container .login-password-toggle {
   position: static;
   flex: 0 0 36px;
@@ -3652,6 +3677,160 @@ body.dark-mode .dashboard-home-heading > p:not(.dashboard-home-user-name):not(.d
   color: #b7c2d5;
 }
 
+.student-today-attendance {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(2, minmax(112px, 0.34fr)) auto;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0 0 1rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid #cfe3da;
+  border-radius: 16px;
+  background: linear-gradient(110deg, #f1faf6, #f7fbf9);
+  box-shadow: 0 6px 18px rgba(27, 86, 62, 0.06);
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.student-today-attendance[hidden] {
+  display: none !important;
+}
+
+.student-today-attendance-status {
+  min-width: 0;
+}
+
+.student-today-attendance-eyebrow {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: #287a68;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.student-today-attendance-status h3 {
+  margin: 0;
+  color: #193d32;
+  font-size: 1rem;
+  font-weight: 750;
+}
+
+.student-today-attendance-status p {
+  margin: 0.2rem 0 0;
+  color: #63766e;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.student-today-attendance-time {
+  min-width: 0;
+  padding: 0.45rem 0.75rem;
+  border-left: 1px solid rgba(40, 122, 104, 0.2);
+}
+
+.student-today-attendance-time span {
+  display: block;
+  color: #63766e;
+  font-size: 0.68rem;
+  font-weight: 650;
+}
+
+.student-today-attendance-time strong {
+  display: block;
+  margin-top: 0.12rem;
+  color: #1d4a35;
+  font-size: clamp(1.05rem, 2.4vw, 1.45rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.student-today-attendance-retry {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 9px;
+  background: transparent;
+  color: #b23d43;
+  cursor: pointer;
+}
+
+.student-today-attendance-retry[hidden] {
+  display: none !important;
+}
+
+.student-today-attendance-retry:focus-visible {
+  outline: 3px solid #3156d3;
+  outline-offset: 2px;
+}
+
+.student-today-attendance.is-weekend,
+.student-today-attendance.is-holiday {
+  border-color: #e7d8a8;
+  background: linear-gradient(110deg, #fff9e8, #fffdf6);
+}
+
+.student-today-attendance.is-weekend .student-today-attendance-eyebrow,
+.student-today-attendance.is-holiday .student-today-attendance-eyebrow {
+  color: #9a731b;
+}
+
+.student-today-attendance.is-event {
+  border-color: #b9dbe8;
+  background: linear-gradient(110deg, #eef9fc, #f8fcfd);
+}
+
+.student-today-attendance.is-event .student-today-attendance-eyebrow {
+  color: #267089;
+}
+
+.student-today-attendance.is-error {
+  border-color: #e7b9bb;
+  background: linear-gradient(110deg, #fff3f3, #fffafa);
+}
+
+.student-today-attendance.is-error .student-today-attendance-eyebrow {
+  color: #b23d43;
+}
+
+.student-today-attendance.is-loading .student-today-attendance-time strong {
+  color: #829087;
+}
+
+body.dark-mode .student-today-attendance {
+  border-color: #355648;
+  background: linear-gradient(110deg, #1d352e, #202f31);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+}
+
+body.dark-mode .student-today-attendance-status h3,
+body.dark-mode .student-today-attendance-time strong {
+  color: #e5f1e9;
+}
+
+body.dark-mode .student-today-attendance-status p,
+body.dark-mode .student-today-attendance-time span {
+  color: #b5c8bd;
+}
+
+body.dark-mode .student-today-attendance.is-weekend,
+body.dark-mode .student-today-attendance.is-holiday {
+  border-color: #675833;
+  background: linear-gradient(110deg, #383222, #322f27);
+}
+
+body.dark-mode .student-today-attendance.is-event {
+  border-color: #315568;
+  background: linear-gradient(110deg, #203b48, #243440);
+}
+
+body.dark-mode .student-today-attendance.is-error {
+  border-color: #69434a;
+  background: linear-gradient(110deg, #3c292e, #34272d);
+}
+
 .dashboard-menu-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -4196,6 +4375,72 @@ body.dark-mode .staff-monitoring-attendance-status.weekend-day {
   border-radius: 20px;
   background: #fff;
   box-shadow: 0 8px 24px rgba(34, 59, 105, 0.06);
+}
+
+.staff-anomalies-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 0.6rem;
+  margin: 0 0 0.9rem;
+}
+
+.staff-anomaly-stat {
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #e3eaf5;
+  border-radius: 12px;
+  background: #f8faff;
+}
+
+.staff-anomaly-stat strong,
+.staff-anomaly-stat span {
+  display: block;
+}
+
+.staff-anomaly-stat strong {
+  color: #b54708;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+}
+
+.staff-anomaly-stat span {
+  margin-top: 0.2rem;
+  color: #52617a;
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+.staff-anomaly-table {
+  min-width: 900px;
+}
+
+.staff-anomaly-table td:last-child {
+  min-width: 240px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.staff-anomaly-menu-card .dashboard-menu-icon {
+  background: linear-gradient(145deg, #ed9b52, #bf5b32);
+  box-shadow: 0 8px 16px rgba(191, 91, 50, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+body.dark-mode .staff-anomaly-stat {
+  border-color: #34425b;
+  background: #202c42;
+}
+
+body.dark-mode .staff-anomaly-stat strong {
+  color: #f0bf78;
+}
+
+body.dark-mode .staff-anomaly-stat span {
+  color: #b7c2d5;
+}
+
+body.dark-mode .staff-anomaly-menu-card .dashboard-menu-icon {
+  background: linear-gradient(145deg, #d98955, #9d4c32);
 }
 
 .staff-directory-heading {
@@ -4909,6 +5154,71 @@ body.dark-mode #dashboard-stats-retry {
   transition: transform 0.16s ease, background-color 0.16s ease;
 }
 
+.ktds-menu-card {
+  position: relative;
+}
+
+.ktds-completion-badge {
+  min-width: 39px;
+  height: 23px;
+  padding: 0 7px;
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 999px;
+  background: #64748b;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
+  color: #fff;
+  font-size: 0.67rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ktds-completion-badge.is-low {
+  background: #c83f45;
+}
+
+.ktds-completion-badge.is-mid {
+  background: #d66b24;
+}
+
+.ktds-completion-badge.is-half {
+  background: #a77a10;
+}
+
+.ktds-completion-badge.is-high {
+  background: #287a68;
+}
+
+.ktds-completion-badge.is-complete {
+  background: #1d4a35;
+}
+
+.ktds-completion-badge.is-error {
+  background: #64748b;
+}
+
+.ktds-completion-badge.is-loading {
+  animation: ktds-badge-pulse 900ms ease-in-out infinite alternate;
+}
+
+body.dark-mode .ktds-completion-badge {
+  border-color: rgba(15, 23, 42, 0.7);
+  color: #fff;
+}
+
+@keyframes ktds-badge-pulse {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
 .dashboard-menu-card:hover {
   transform: translateY(-2px);
   box-shadow: none;
@@ -5100,6 +5410,33 @@ body.dark-mode .summary-item > span {
   .dashboard-home-heading {
     margin-bottom: 0.7rem;
     padding: 0.9rem 1rem;
+  }
+
+  .student-today-attendance {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem 0.6rem;
+    margin-bottom: 0.7rem;
+    padding: 0.75rem;
+    border-radius: 14px;
+  }
+
+  .student-today-attendance-status {
+    grid-column: 1 / -1;
+  }
+
+  .student-today-attendance-time {
+    padding: 0.4rem 0.5rem;
+    border-top: 1px solid rgba(40, 122, 104, 0.2);
+    border-left: 0;
+  }
+
+  .student-today-attendance-time strong {
+    font-size: 1.15rem;
+  }
+
+  .student-today-attendance-retry {
+    justify-self: end;
+    grid-column: 1 / -1;
   }
 
   .dashboard-statistics {
@@ -5621,5 +5958,1058 @@ body.dark-mode .student-qr-code {
 
   .dashboard-stat-track {
     height: 6px;
+  }
+}
+
+/* Glassmorphic surface system: applies to index.html, excluding Reff/Index2.html */
+body.light-mode,
+body.dark-mode {
+  background:
+    linear-gradient(135deg, rgba(11, 84, 120, 0.16), transparent 38%),
+    linear-gradient(315deg, rgba(64, 186, 156, 0.12), transparent 42%),
+    var(--color-neutral-light);
+  background-attachment: fixed;
+}
+
+body.dark-mode {
+  background:
+    linear-gradient(135deg, rgba(42, 112, 154, 0.18), transparent 38%),
+    linear-gradient(315deg, rgba(50, 150, 129, 0.11), transparent 42%),
+    #111827;
+}
+
+body.light-mode .main-container,
+body.dark-mode .main-container {
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow:
+    0 24px 72px rgba(27, 70, 104, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(22px) saturate(128%);
+  -webkit-backdrop-filter: blur(22px) saturate(128%);
+}
+
+body.dark-mode .main-container {
+  border-color: rgba(177, 202, 226, 0.12);
+  background: rgba(20, 31, 49, 0.78);
+  box-shadow:
+    0 24px 72px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(220, 238, 255, 0.06);
+}
+
+body.light-mode .app-header,
+body.light-mode #loginForm,
+body.light-mode #forgotPasswordPanel,
+body.light-mode .dashboard-home-heading,
+body.light-mode .student-today-attendance,
+body.light-mode .dashboard-statistics,
+body.light-mode .dashboard-menu-grid,
+body.light-mode .profile-card,
+body.light-mode .ktds-card,
+body.light-mode .attendance-container,
+body.light-mode .calendar-container,
+body.light-mode .filter-container,
+body.light-mode .summary-dashboard,
+body.light-mode .legend-container,
+body.light-mode .staff-directory-panel,
+body.light-mode .staff-summary-card,
+body.light-mode .staff-event-list li,
+body.light-mode .staff-event-form,
+body.light-mode .staff-anomaly-stat,
+body.light-mode .modal-content,
+body.light-mode .student-qr-modal-content,
+body.light-mode .confirmation-modal-content {
+  border-color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow:
+    0 14px 36px rgba(42, 84, 117, 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+}
+
+body.dark-mode .app-header,
+body.dark-mode #loginForm,
+body.dark-mode #forgotPasswordPanel,
+body.dark-mode .dashboard-home-heading,
+body.dark-mode .student-today-attendance,
+body.dark-mode .dashboard-statistics,
+body.dark-mode .dashboard-menu-grid,
+body.dark-mode .profile-card,
+body.dark-mode .ktds-card,
+body.dark-mode .attendance-container,
+body.dark-mode .calendar-container,
+body.dark-mode .filter-container,
+body.dark-mode .summary-dashboard,
+body.dark-mode .legend-container,
+body.dark-mode .staff-directory-panel,
+body.dark-mode .staff-summary-card,
+body.dark-mode .staff-event-list li,
+body.dark-mode .staff-event-form,
+body.dark-mode .staff-anomaly-stat,
+body.dark-mode .modal-content,
+body.dark-mode .student-qr-modal-content,
+body.dark-mode .confirmation-modal-content {
+  border-color: rgba(202, 224, 242, 0.14);
+  background: rgba(25, 38, 58, 0.72);
+  box-shadow:
+    0 16px 38px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(224, 241, 255, 0.07);
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+}
+
+body.light-mode .dashboard-menu-card,
+body.dark-mode .dashboard-menu-card {
+  border: 1px solid transparent;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+body.light-mode .dashboard-menu-card:hover,
+body.dark-mode .dashboard-menu-card:hover {
+  border-color: rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.18) !important;
+}
+
+body.light-mode input,
+body.light-mode select,
+body.light-mode textarea,
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  border-color: rgba(138, 165, 188, 0.36);
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  background: rgba(36, 51, 73, 0.74);
+  border-color: rgba(178, 202, 226, 0.16);
+}
+
+body.light-mode .staff-directory-content,
+body.light-mode .staff-anomalies-summary,
+body.light-mode .rpg-stat-breakdown,
+body.dark-mode .staff-directory-content,
+body.dark-mode .staff-anomalies-summary,
+body.dark-mode .rpg-stat-breakdown {
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+body.dark-mode .staff-directory-content,
+body.dark-mode .staff-anomalies-summary,
+body.dark-mode .rpg-stat-breakdown {
+  border-color: rgba(199, 222, 242, 0.08);
+  background: rgba(14, 24, 39, 0.22);
+}
+
+body.light-mode .staff-directory-table th,
+body.light-mode .calendar-weekdays,
+body.light-mode .legend-container {
+  background: rgba(245, 249, 252, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+body.dark-mode .staff-directory-table th,
+body.dark-mode .calendar-weekdays,
+body.dark-mode .legend-container {
+  background: rgba(28, 43, 64, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+body.light-mode .dashboard-menu-icon,
+body.dark-mode .dashboard-menu-icon {
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  box-shadow:
+    0 10px 24px rgba(35, 91, 128, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+body.light-mode .footer,
+body.dark-mode .footer {
+  background: transparent;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  body.light-mode .main-container,
+  body.dark-mode .main-container,
+  body.light-mode .dashboard-home-heading,
+  body.dark-mode .dashboard-home-heading,
+  body.light-mode .staff-directory-panel,
+  body.dark-mode .staff-directory-panel {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* Strong glassmorphic finish */
+body.light-mode {
+  background:
+    linear-gradient(145deg, rgba(224, 239, 255, 0.82), transparent 42%),
+    linear-gradient(315deg, rgba(184, 241, 225, 0.58), transparent 46%),
+    #edf3f8;
+  background-attachment: fixed;
+}
+
+body.dark-mode {
+  background:
+    linear-gradient(145deg, rgba(48, 86, 137, 0.28), transparent 42%),
+    linear-gradient(315deg, rgba(40, 116, 101, 0.19), transparent 46%),
+    #0d1625;
+  background-attachment: fixed;
+}
+
+body.light-mode .main-container {
+  width: min(1120px, calc(100% - 24px));
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.48);
+  box-shadow:
+    0 28px 90px rgba(58, 94, 132, 0.22),
+    0 8px 24px rgba(58, 94, 132, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(26px) saturate(145%);
+  -webkit-backdrop-filter: blur(26px) saturate(145%);
+}
+
+body.dark-mode .main-container {
+  border: 1px solid rgba(199, 225, 246, 0.16);
+  background: rgba(15, 27, 46, 0.62);
+  box-shadow:
+    0 28px 90px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(224, 241, 255, 0.09);
+  backdrop-filter: blur(26px) saturate(135%);
+  -webkit-backdrop-filter: blur(26px) saturate(135%);
+}
+
+body.light-mode .app-header,
+body.light-mode #loginForm,
+body.light-mode #forgotPasswordPanel,
+body.light-mode .dashboard-home-heading,
+body.light-mode .student-today-attendance,
+body.light-mode .dashboard-statistics,
+body.light-mode .dashboard-menu-grid,
+body.light-mode .profile-card,
+body.light-mode .ktds-card,
+body.light-mode .attendance-container,
+body.light-mode .calendar-container,
+body.light-mode .filter-container,
+body.light-mode .summary-dashboard,
+body.light-mode .legend-container,
+body.light-mode .staff-directory-panel,
+body.light-mode .staff-summary-card,
+body.light-mode .staff-event-list li,
+body.light-mode .staff-event-form,
+body.light-mode .staff-anomaly-stat,
+body.light-mode .modal-content,
+body.light-mode .student-qr-modal-content,
+body.light-mode .confirmation-modal-content {
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.38);
+  box-shadow:
+    0 14px 42px rgba(61, 100, 139, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+}
+
+body.dark-mode .app-header,
+body.dark-mode #loginForm,
+body.dark-mode #forgotPasswordPanel,
+body.dark-mode .dashboard-home-heading,
+body.dark-mode .student-today-attendance,
+body.dark-mode .dashboard-statistics,
+body.dark-mode .dashboard-menu-grid,
+body.dark-mode .profile-card,
+body.dark-mode .ktds-card,
+body.dark-mode .attendance-container,
+body.dark-mode .calendar-container,
+body.dark-mode .filter-container,
+body.dark-mode .summary-dashboard,
+body.dark-mode .legend-container,
+body.dark-mode .staff-directory-panel,
+body.dark-mode .staff-summary-card,
+body.dark-mode .staff-event-list li,
+body.dark-mode .staff-event-form,
+body.dark-mode .staff-anomaly-stat,
+body.dark-mode .modal-content,
+body.dark-mode .student-qr-modal-content,
+body.dark-mode .confirmation-modal-content {
+  border: 1px solid rgba(199, 224, 246, 0.18);
+  background: rgba(24, 38, 61, 0.52);
+  box-shadow:
+    0 16px 46px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(224, 241, 255, 0.08);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+
+body.light-mode .dashboard-menu-grid,
+body.light-mode .staff-directory-panel,
+body.light-mode .dashboard-statistics,
+body.light-mode .profile-card,
+body.light-mode .ktds-card,
+body.light-mode .attendance-container,
+body.light-mode .calendar-container {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.52), rgba(226, 242, 250, 0.32));
+}
+
+body.dark-mode .dashboard-menu-grid,
+body.dark-mode .staff-directory-panel,
+body.dark-mode .dashboard-statistics,
+body.dark-mode .profile-card,
+body.dark-mode .ktds-card,
+body.dark-mode .attendance-container,
+body.dark-mode .calendar-container {
+  background:
+    linear-gradient(145deg, rgba(34, 53, 82, 0.58), rgba(18, 38, 55, 0.46));
+}
+
+body.light-mode .dashboard-menu-card {
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  background: rgba(255, 255, 255, 0.32) !important;
+  box-shadow:
+    0 10px 26px rgba(73, 110, 145, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+body.dark-mode .dashboard-menu-card {
+  border: 1px solid rgba(214, 236, 255, 0.1);
+  background: rgba(39, 57, 84, 0.36) !important;
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(224, 241, 255, 0.05);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+body.light-mode .dashboard-menu-card:hover,
+body.dark-mode .dashboard-menu-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(111, 170, 205, 0.4);
+  background: rgba(255, 255, 255, 0.5) !important;
+  box-shadow:
+    0 16px 32px rgba(73, 110, 145, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+body.dark-mode .dashboard-menu-card:hover {
+  border-color: rgba(159, 198, 229, 0.22);
+  background: rgba(54, 77, 110, 0.48) !important;
+  box-shadow:
+    0 16px 32px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(224, 241, 255, 0.08);
+}
+
+body.light-mode input,
+body.light-mode select,
+body.light-mode textarea,
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  border-width: 1px;
+  border-style: solid;
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+}
+
+body.light-mode input,
+body.light-mode select,
+body.light-mode textarea {
+  border-color: rgba(98, 139, 174, 0.28);
+  background: rgba(255, 255, 255, 0.56);
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  border-color: rgba(176, 205, 230, 0.16);
+  background: rgba(24, 39, 61, 0.62);
+}
+
+body.light-mode .staff-directory-content,
+body.light-mode .staff-anomalies-summary,
+body.light-mode .rpg-stat-breakdown,
+body.dark-mode .staff-directory-content,
+body.dark-mode .staff-anomalies-summary,
+body.dark-mode .rpg-stat-breakdown {
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.64);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+}
+
+body.dark-mode .staff-directory-content,
+body.dark-mode .staff-anomalies-summary,
+body.dark-mode .rpg-stat-breakdown {
+  border-color: rgba(199, 222, 242, 0.1);
+  background: rgba(13, 24, 40, 0.28);
+  box-shadow: inset 0 1px 0 rgba(224, 241, 255, 0.06);
+}
+
+body.light-mode .modal-content,
+body.light-mode .student-qr-modal-content,
+body.light-mode .confirmation-modal-content,
+body.dark-mode .modal-content,
+body.dark-mode .student-qr-modal-content,
+body.dark-mode .confirmation-modal-content {
+  backdrop-filter: blur(28px) saturate(145%);
+  -webkit-backdrop-filter: blur(28px) saturate(145%);
+}
+
+@media (max-width: 640px) {
+  body.light-mode .main-container,
+  body.dark-mode .main-container {
+    width: calc(100% - 12px);
+  }
+
+  body.light-mode .dashboard-home-heading,
+  body.light-mode .student-today-attendance,
+  body.light-mode .dashboard-statistics,
+  body.light-mode .dashboard-menu-grid,
+  body.light-mode .staff-directory-panel,
+  body.dark-mode .dashboard-home-heading,
+  body.dark-mode .student-today-attendance,
+  body.dark-mode .dashboard-statistics,
+  body.dark-mode .dashboard-menu-grid,
+  body.dark-mode .staff-directory-panel {
+    border-radius: 16px;
+  }
+}
+
+/* Linen Chalk, Matte Black, and Siren Red theme */
+:root {
+  --linen-chalk: #f3eee5;
+  --matte-black: #1b1a19;
+  --siren-red: #c91d37;
+  --color-primary: var(--matte-black);
+  --color-secondary: var(--siren-red);
+  --color-accent: var(--siren-red);
+  --color-neutral-light: var(--linen-chalk);
+  --color-neutral-dark: #282625;
+  --color-hadir: var(--matte-black);
+  --color-absen: var(--siren-red);
+  --color-terlambat: #a94651;
+  --color-izin: #716b63;
+  --box-shadow: 0 16px 42px rgba(27, 26, 25, 0.1);
+}
+
+body.light-mode {
+  background: linear-gradient(145deg, #f8f4ec, var(--linen-chalk) 62%, #e8e1d6);
+  color: var(--matte-black);
+}
+
+body.dark-mode {
+  background: linear-gradient(145deg, #302d2b, var(--matte-black) 62%);
+  color: var(--linen-chalk);
+}
+
+body.light-mode .main-container {
+  border-color: rgba(27, 26, 25, 0.14);
+  background: rgba(243, 238, 229, 0.94);
+  box-shadow: 0 28px 80px rgba(27, 26, 25, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+body.dark-mode .main-container {
+  border-color: rgba(243, 238, 229, 0.14);
+  background: rgba(40, 38, 37, 0.96);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(243, 238, 229, 0.05);
+}
+
+body.light-mode .app-header,
+body.light-mode #loginForm,
+body.light-mode #forgotPasswordPanel,
+body.light-mode .dashboard-home-heading,
+body.light-mode .student-today-attendance,
+body.light-mode .dashboard-statistics,
+body.light-mode .dashboard-menu-grid,
+body.light-mode .profile-card,
+body.light-mode .ktds-card,
+body.light-mode .attendance-container,
+body.light-mode .calendar-container,
+body.light-mode .filter-container,
+body.light-mode .summary-dashboard,
+body.light-mode .legend-container,
+body.light-mode .staff-directory-panel,
+body.light-mode .staff-summary-card,
+body.light-mode .staff-event-list li,
+body.light-mode .staff-event-form,
+body.light-mode .staff-anomaly-stat,
+body.light-mode .modal-content,
+body.light-mode .student-qr-modal-content,
+body.light-mode .confirmation-modal-content {
+  border-color: rgba(27, 26, 25, 0.12);
+  background: rgba(243, 238, 229, 0.86);
+  box-shadow: 0 12px 34px rgba(27, 26, 25, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+body.dark-mode .app-header,
+body.dark-mode #loginForm,
+body.dark-mode #forgotPasswordPanel,
+body.dark-mode .dashboard-home-heading,
+body.dark-mode .student-today-attendance,
+body.dark-mode .dashboard-statistics,
+body.dark-mode .dashboard-menu-grid,
+body.dark-mode .profile-card,
+body.dark-mode .ktds-card,
+body.dark-mode .attendance-container,
+body.dark-mode .calendar-container,
+body.dark-mode .filter-container,
+body.dark-mode .summary-dashboard,
+body.dark-mode .legend-container,
+body.dark-mode .staff-directory-panel,
+body.dark-mode .staff-summary-card,
+body.dark-mode .staff-event-list li,
+body.dark-mode .staff-event-form,
+body.dark-mode .staff-anomaly-stat,
+body.dark-mode .modal-content,
+body.dark-mode .student-qr-modal-content,
+body.dark-mode .confirmation-modal-content {
+  border-color: rgba(243, 238, 229, 0.14);
+  background: rgba(40, 38, 37, 0.94);
+  color: var(--linen-chalk);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(243, 238, 229, 0.04);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+body.light-mode .dashboard-menu-card {
+  border-color: rgba(27, 26, 25, 0.12);
+  background: rgba(243, 238, 229, 0.82) !important;
+  box-shadow: 0 8px 22px rgba(27, 26, 25, 0.07);
+}
+
+body.dark-mode .dashboard-menu-card {
+  border-color: rgba(243, 238, 229, 0.12);
+  background: rgba(55, 52, 50, 0.84) !important;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
+}
+
+body.light-mode .dashboard-menu-card:hover,
+body.dark-mode .dashboard-menu-card:hover {
+  border-color: rgba(201, 29, 55, 0.5);
+  background: rgba(201, 29, 55, 0.08) !important;
+}
+
+.app-header h1,
+.dashboard-section-heading h2,
+.dashboard-home-heading h2,
+.calendar-header {
+  color: var(--matte-black);
+}
+
+body.dark-mode .app-header h1,
+body.dark-mode .dashboard-section-heading h2,
+body.dark-mode .dashboard-home-heading h2,
+body.dark-mode .calendar-header {
+  color: var(--linen-chalk);
+}
+
+.app-header p,
+.dashboard-section-heading p,
+.dashboard-home-heading p,
+.dashboard-greeting,
+.dashboard-eyebrow,
+.footer {
+  color: #716b63;
+}
+
+body.dark-mode .app-header p,
+body.dark-mode .dashboard-section-heading p,
+body.dark-mode .dashboard-home-heading p,
+body.dark-mode .dashboard-greeting,
+body.dark-mode .dashboard-eyebrow,
+body.dark-mode .footer {
+  color: #c8c0b5;
+}
+
+#digital-clock,
+body.dark-mode #digital-clock {
+  border-color: rgba(201, 29, 55, 0.28);
+  background: rgba(201, 29, 55, 0.08);
+  color: var(--siren-red);
+}
+
+.login-intro,
+body.dark-mode .login-intro {
+  background: linear-gradient(145deg, #282625, #1b1a19 75%);
+  color: var(--linen-chalk);
+}
+
+.login-eyebrow,
+body.dark-mode .login-eyebrow,
+.login-help i,
+.dashboard-menu-icon,
+.profile-form-icon {
+  color: var(--siren-red);
+}
+
+.login-icon {
+  border: 1px solid rgba(201, 29, 55, 0.18);
+  background: rgba(201, 29, 55, 0.1);
+  color: var(--siren-red);
+}
+
+.login-icon i {
+  color: inherit;
+}
+
+.login-submit + .forgot-password-link,
+#loginForm .forgot-password-link,
+body.dark-mode #loginForm .forgot-password-link {
+  color: var(--siren-red);
+}
+
+body.dark-mode #loginForm .forgot-password-link {
+  color: #f17686 !important;
+}
+
+.login-submit,
+.login-submit:hover,
+body.light-mode .login-submit,
+body.dark-mode .login-submit,
+#notification-bar.info,
+body.dark-mode #notification-bar.info {
+  background: var(--siren-red) !important;
+  color: var(--linen-chalk);
+  box-shadow: 0 8px 20px rgba(201, 29, 55, 0.2);
+}
+
+.nav-buttons button,
+#mobile-menu-btn,
+body.light-mode .dashboard-back-button,
+body.dark-mode .dashboard-back-button {
+  background: var(--matte-black);
+  color: var(--linen-chalk);
+}
+
+.nav-buttons button.active,
+body.dark-mode .nav-buttons button.active {
+  background: var(--siren-red);
+  color: var(--linen-chalk);
+}
+
+.header-qr-button,
+.share-icon {
+  border-color: rgba(201, 29, 55, 0.24) !important;
+  background: rgba(201, 29, 55, 0.08) !important;
+  color: var(--siren-red) !important;
+}
+
+body.dark-mode .header-qr-button,
+body.dark-mode .share-icon {
+  border-color: rgba(201, 29, 55, 0.34) !important;
+  background: rgba(201, 29, 55, 0.16) !important;
+  color: #f17686 !important;
+}
+
+.slider,
+input:checked + .slider {
+  background-color: var(--siren-red);
+}
+
+.login-input-wrap:focus-within,
+input:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible,
+.ktds-field input:focus,
+.ktds-field select:focus,
+.ktds-field textarea:focus {
+  outline-color: rgba(201, 29, 55, 0.5);
+  border-color: var(--siren-red);
+  box-shadow: 0 0 0 3px rgba(201, 29, 55, 0.14);
+}
+
+body.light-mode input,
+body.light-mode select,
+body.light-mode textarea,
+body.light-mode .login-input-wrap,
+body.light-mode .ktds-readonly-field,
+body.light-mode .legend-item,
+body.light-mode .summary-item,
+body.light-mode .calendar-day,
+body.light-mode .nav-dropdown {
+  border-color: rgba(27, 26, 25, 0.16);
+  background-color: #f8f4ec;
+  color: var(--matte-black);
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea,
+body.dark-mode .login-input-wrap,
+body.dark-mode .ktds-readonly-field,
+body.dark-mode .legend-item,
+body.dark-mode .summary-item,
+body.dark-mode .calendar-day,
+body.dark-mode .nav-dropdown {
+  border-color: rgba(243, 238, 229, 0.16);
+  background-color: #302d2b;
+  color: var(--linen-chalk);
+}
+
+body.light-mode .calendar-day.status-H,
+body.light-mode .calendar-day.status-P,
+body.light-mode .calendar-day.weekend-day {
+  border-color: rgba(27, 26, 25, 0.2);
+  background: #e7e0d5;
+  color: var(--matte-black);
+}
+
+body.light-mode .calendar-day.status-A,
+body.light-mode .calendar-day.status-T,
+body.light-mode .calendar-day.status-I {
+  border-color: rgba(201, 29, 55, 0.28);
+  background: #f7e5e5;
+  color: #8e1d2e;
+}
+
+body.dark-mode .calendar-day.status-H,
+body.dark-mode .calendar-day.status-P,
+body.dark-mode .calendar-day.weekend-day {
+  border-color: rgba(243, 238, 229, 0.2);
+  background: #3a3633;
+  color: var(--linen-chalk);
+}
+
+body.dark-mode .calendar-day.status-A,
+body.dark-mode .calendar-day.status-T,
+body.dark-mode .calendar-day.status-I {
+  border-color: rgba(241, 118, 134, 0.38);
+  background: #512b31;
+  color: #ffdbe0;
+}
+
+.summary-item.absen i,
+.summary-item.terlambat i,
+.summary-item.izin i,
+.summary-item.hadir i,
+.legend-color-box.H,
+.legend-color-box.P {
+  color: var(--siren-red);
+}
+
+.profile-avatar,
+.profile-form-icon {
+  border-color: rgba(201, 29, 55, 0.18);
+  background: rgba(201, 29, 55, 0.1);
+  color: var(--siren-red);
+  box-shadow: none;
+}
+
+.pull-to-refresh-indicator,
+body.dark-mode .pull-to-refresh-indicator {
+  border-color: rgba(201, 29, 55, 0.25);
+  background: var(--linen-chalk);
+  color: var(--matte-black);
+}
+
+.pull-to-refresh-indicator i {
+  color: var(--siren-red);
+}
+
+#app-splash-screen {
+  background: linear-gradient(145deg, #302d2b, var(--matte-black) 72%);
+  color: var(--linen-chalk);
+}
+
+.app-splash-spinner {
+  border-top-color: var(--siren-red);
+}
+
+body.dark-mode .dashboard-topbar,
+body.light-mode .dashboard-topbar {
+  border-color: rgba(27, 26, 25, 0.14);
+  background: rgba(27, 26, 25, 0.06);
+}
+
+body.dark-mode .dashboard-topbar {
+  border-color: rgba(243, 238, 229, 0.12);
+  background: rgba(243, 238, 229, 0.05);
+}
+
+body.light-mode .dashboard-home-heading[data-time-period] {
+  border-color: rgba(27, 26, 25, 0.14);
+  background: linear-gradient(135deg, #f8f4ec, var(--linen-chalk));
+}
+
+body.dark-mode .dashboard-home-heading[data-time-period] {
+  border-color: rgba(243, 238, 229, 0.14);
+  background: linear-gradient(135deg, #302d2b, #22201f);
+}
+
+.dashboard-home-heading[data-time-period]::after {
+  opacity: 0.12;
+  background:
+    radial-gradient(circle at 70% 50%, var(--siren-red) 0 18%, transparent 19%),
+    radial-gradient(circle at 70% 50%, var(--linen-chalk) 0 28%, transparent 29%);
+}
+
+.dashboard-home-heading .dashboard-home-user-name {
+  color: var(--matte-black);
+}
+
+.dashboard-home-heading > .dashboard-home-homeroom {
+  border-color: rgba(201, 29, 55, 0.24);
+  background: rgba(201, 29, 55, 0.07);
+  color: var(--siren-red);
+}
+
+body.dark-mode .dashboard-home-heading .dashboard-home-user-name {
+  color: var(--linen-chalk);
+}
+
+body.dark-mode .dashboard-home-heading > .dashboard-home-homeroom {
+  border-color: rgba(201, 29, 55, 0.28);
+  background: rgba(201, 29, 55, 0.12);
+  color: #f17686;
+}
+
+.student-today-attendance,
+body.dark-mode .student-today-attendance,
+.student-today-attendance.is-weekend,
+.student-today-attendance.is-holiday,
+.student-today-attendance.is-event,
+.student-today-attendance.is-error,
+body.dark-mode .student-today-attendance.is-weekend,
+body.dark-mode .student-today-attendance.is-holiday,
+body.dark-mode .student-today-attendance.is-event,
+body.dark-mode .student-today-attendance.is-error {
+  border-color: rgba(27, 26, 25, 0.14);
+  background: var(--linen-chalk);
+  color: var(--matte-black);
+}
+
+.student-today-attendance-eyebrow,
+.student-today-attendance-retry,
+.student-today-attendance.is-weekend .student-today-attendance-eyebrow,
+.student-today-attendance.is-holiday .student-today-attendance-eyebrow,
+.student-today-attendance.is-event .student-today-attendance-eyebrow,
+.student-today-attendance.is-error .student-today-attendance-eyebrow {
+  color: var(--siren-red);
+}
+
+.student-today-attendance-status h3,
+.student-today-attendance-time strong {
+  color: var(--matte-black);
+}
+
+body.dark-mode .student-today-attendance-status h3,
+body.dark-mode .student-today-attendance-time strong {
+  color: var(--linen-chalk);
+}
+
+.student-today-attendance-time {
+  border-color: rgba(27, 26, 25, 0.16);
+}
+
+body.dark-mode .student-today-attendance-time {
+  border-color: rgba(243, 238, 229, 0.16);
+}
+
+.staff-summary-card.total,
+.staff-summary-card.hadir,
+.staff-summary-card.izin,
+.staff-summary-card.sakit,
+.staff-summary-card.terlambat,
+.staff-summary-card.alpa,
+.staff-summary-card.belum,
+.staff-summary-card.libur {
+  --summary-color: var(--siren-red);
+}
+
+.staff-summary-card,
+body.light-mode .staff-summary-card {
+  border-color: rgba(27, 26, 25, 0.16);
+  background: #f8f4ec;
+  color: var(--matte-black);
+}
+
+body.dark-mode .staff-summary-card {
+  border-color: rgba(243, 238, 229, 0.16);
+  background: #302d2b;
+  color: var(--linen-chalk);
+}
+
+.staff-summary-icon,
+body.dark-mode .staff-summary-icon {
+  background: rgba(201, 29, 55, 0.1);
+  color: var(--siren-red);
+}
+
+.staff-summary-copy > span,
+.staff-summary-card strong,
+.staff-summary-card.hadir strong,
+.staff-summary-card.izin strong,
+.staff-summary-card.sakit strong,
+.staff-summary-card.terlambat strong,
+.staff-summary-card.alpa strong,
+.staff-summary-card.belum strong,
+.staff-summary-card.libur strong,
+body.light-mode .staff-summary-copy > span,
+body.light-mode .staff-summary-card strong,
+body.light-mode .staff-summary-card.hadir strong,
+body.light-mode .staff-summary-card.izin strong,
+body.light-mode .staff-summary-card.sakit strong,
+body.light-mode .staff-summary-card.terlambat strong,
+body.light-mode .staff-summary-card.alpa strong,
+body.light-mode .staff-summary-card.belum strong,
+body.light-mode .staff-summary-card.libur strong {
+  color: var(--matte-black);
+}
+
+body.dark-mode .staff-summary-copy > span,
+body.dark-mode .staff-summary-card strong,
+body.dark-mode .staff-summary-card.hadir strong,
+body.dark-mode .staff-summary-card.izin strong,
+body.dark-mode .staff-summary-card.sakit strong,
+body.dark-mode .staff-summary-card.terlambat strong,
+body.dark-mode .staff-summary-card.alpa strong,
+body.dark-mode .staff-summary-card.belum strong,
+body.dark-mode .staff-summary-card.libur strong {
+  color: var(--linen-chalk);
+}
+
+.staff-summary-track {
+  background: rgba(27, 26, 25, 0.12);
+}
+
+body.dark-mode .staff-summary-track {
+  background: rgba(243, 238, 229, 0.12);
+}
+
+.staff-summary-indicator.is-active,
+body.dark-mode .staff-summary-indicator.is-active {
+  background: var(--siren-red) !important;
+}
+
+.dashboard-menu-card .dashboard-menu-icon,
+.staff-anomaly-menu-card .dashboard-menu-icon,
+.staff-monitor-menu-card .dashboard-menu-icon,
+.staff-permission-menu-card .dashboard-menu-icon,
+.staff-alpha-menu-card .dashboard-menu-icon,
+.staff-monthly-summary-menu-card .dashboard-menu-icon,
+.staff-manage-menu-card .dashboard-menu-icon {
+  border-color: rgba(201, 29, 55, 0.18);
+  background: rgba(201, 29, 55, 0.1);
+  box-shadow: none;
+  color: var(--siren-red);
+}
+
+body.dark-mode .dashboard-menu-card .dashboard-menu-icon,
+body.dark-mode .staff-anomaly-menu-card .dashboard-menu-icon,
+body.dark-mode .staff-monitor-menu-card .dashboard-menu-icon,
+body.dark-mode .staff-permission-menu-card .dashboard-menu-icon,
+body.dark-mode .staff-alpha-menu-card .dashboard-menu-icon,
+body.dark-mode .staff-monthly-summary-menu-card .dashboard-menu-icon,
+body.dark-mode .staff-manage-menu-card .dashboard-menu-icon {
+  border-color: rgba(241, 118, 134, 0.2);
+  background: rgba(201, 29, 55, 0.16);
+  color: #f17686;
+}
+
+.login-remember-row input {
+  accent-color: var(--siren-red);
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+#profile-photo-preview[hidden],
+#ktds-osis-photo-preview[hidden] {
+  display: none;
+}
+
+.student-photo-field {
+  display: grid;
+  justify-items: start;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.student-photo-label {
+  color: var(--matte-black);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+body.dark-mode .student-photo-label {
+  color: var(--linen-chalk);
+}
+
+.student-photo-upload-button {
+  width: auto;
+  min-height: 40px;
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+  border-radius: 10px;
+  background: var(--siren-red);
+  color: var(--linen-chalk);
+  font-size: 0.82rem;
+}
+
+.student-photo-status {
+  margin: 0;
+  color: #716b63;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+body.dark-mode .student-photo-status {
+  color: #c8c0b5;
+}
+
+.ktds-photo-upload {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(27, 26, 25, 0.14);
+  border-radius: 14px;
+  background: rgba(243, 238, 229, 0.72);
+}
+
+body.dark-mode .ktds-photo-upload {
+  border-color: rgba(243, 238, 229, 0.14);
+  background: rgba(40, 38, 37, 0.72);
+}
+
+.ktds-osis-photo-preview {
+  display: block;
+  width: min(100%, 160px);
+  aspect-ratio: 3 / 4;
+  margin-top: 0.55rem;
+  border: 1px solid rgba(27, 26, 25, 0.16);
+  border-radius: 10px;
+  background: var(--linen-chalk);
+  object-fit: cover;
+}
+
+@media (max-width: 640px) {
+  .ktds-photo-upload {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

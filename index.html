@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0d6b5f">
+  <meta name="theme-color" content="#1b1a19">
   <title>Sistem Absensi</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -14,7 +14,7 @@
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
   <!-- Include external CSS -->
-  <link rel="stylesheet" href="css/styles.css?v=20261105-monthly-status-codes">
+  <link rel="stylesheet" href="css/styles.css?v=20261126-student-photo-drive">
 </head>
 
 <body>
@@ -130,6 +130,26 @@
           <p id="dashboard-home-description">Pilih menu untuk mulai menjelajahi layanan siswa.</p>
           <p id="dashboard-homeroom-class" class="dashboard-home-homeroom" aria-live="polite" hidden></p>
         </div>
+        <section id="student-today-attendance" class="student-today-attendance" aria-labelledby="student-today-attendance-title" aria-live="polite" hidden>
+          <div class="student-today-attendance-status">
+            <span class="student-today-attendance-eyebrow">ABSENSI HARI INI</span>
+            <h3 id="student-today-attendance-title">Kehadiran</h3>
+            <p id="student-today-attendance-message">Memuat data kehadiran...</p>
+          </div>
+          <div class="student-today-attendance-times">
+            <div class="student-today-attendance-time">
+              <span>Jam masuk</span>
+              <strong id="student-today-jam-masuk">-</strong>
+            </div>
+            <div class="student-today-attendance-time">
+              <span>Jam pulang</span>
+              <strong id="student-today-jam-pulang">-</strong>
+            </div>
+          </div>
+          <button id="student-today-attendance-retry" class="student-today-attendance-retry" type="button" aria-label="Muat ulang absensi hari ini" title="Muat ulang" onclick="loadDashboardTodayAttendance(true)" hidden>
+            <i class="fas fa-rotate" aria-hidden="true"></i>
+          </button>
+        </section>
         <section id="student-dashboard-statistics" class="dashboard-statistics rpg-status-panel" aria-labelledby="dashboard-statistics-title">
           <div class="dashboard-statistics-heading">
             <div class="rpg-status-title">
@@ -198,12 +218,13 @@
           <button type="button" class="dashboard-menu-card ktds-menu-card" data-panel="ktds" onclick="showKtdsPanel()">
             <span class="dashboard-menu-icon"><i class="fas fa-address-card" aria-hidden="true"></i></span>
             <span class="dashboard-menu-label">KTDS</span>
+            <span id="ktds-completion-badge" class="ktds-completion-badge is-loading" role="progressbar" aria-label="Kelengkapan KTDS" aria-valuemin="0" aria-valuemax="100" aria-busy="true" title="Memuat kelengkapan KTDS">…</span>
           </button>
           <button type="button" class="dashboard-menu-card qr-menu-card" onclick="showStudentQrModal()">
             <span class="dashboard-menu-icon"><i class="fas fa-qrcode" aria-hidden="true"></i></span>
             <span class="dashboard-menu-label">QR Siswa</span>
           </button>
-          <button type="button" class="dashboard-menu-card digital-card-menu-card" onclick="showNotification('Kartu Pelajar Digital masih dalam pengembangan.', 'info')">
+          <button type="button" class="dashboard-menu-card digital-card-menu-card" onclick="openDigitalStudentCard()">
             <span class="dashboard-menu-icon"><i class="fas fa-id-card" aria-hidden="true"></i></span>
             <span class="dashboard-menu-label">Pelajar Digital</span>
           </button>
@@ -301,6 +322,10 @@
           <button id="staff-alpha-students-menu" type="button" class="dashboard-menu-card staff-alpha-menu-card" onclick="showStaffFeature('alphaStudents')" hidden>
             <span class="dashboard-menu-icon"><i class="fas fa-user-times" aria-hidden="true"></i></span>
             <span class="dashboard-menu-label">Siswa Alpa</span>
+          </button>
+          <button id="staff-anomaly-menu" type="button" class="dashboard-menu-card staff-anomaly-menu-card" onclick="showStaffFeature('anomalies')" hidden>
+            <span class="dashboard-menu-icon"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i></span>
+            <span class="dashboard-menu-label">Kesalahan &amp; Anomali</span>
           </button>
           <button id="staff-permission-menu" type="button" class="dashboard-menu-card staff-permission-menu-card" onclick="showStaffFeature('permissions')" hidden>
             <span class="dashboard-menu-icon"><i class="fas fa-notes-medical" aria-hidden="true"></i></span>
@@ -513,6 +538,21 @@
           <div id="staff-monthly-summary-content" class="staff-directory-content"></div>
           <p id="staff-monthly-summary-note" class="staff-monthly-summary-note" role="note" hidden></p>
         </section>
+        <section id="staff-anomalies-panel" class="staff-directory-panel" aria-labelledby="staff-anomalies-title" hidden>
+          <div class="staff-directory-heading">
+            <div>
+              <span class="dashboard-eyebrow">Validasi pemindaian</span>
+              <h3 id="staff-anomalies-title">Kesalahan &amp; Anomali</h3>
+              <p id="staff-anomalies-count" class="staff-permission-count" role="status" aria-live="polite">Memuat rekap...</p>
+            </div>
+            <button type="button" class="staff-refresh-button" aria-label="Muat ulang rekap anomali" title="Muat ulang rekap anomali" onclick="refreshStaffFeature('anomalies', this)">
+              <i class="fas fa-rotate" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div id="staff-anomalies-summary" class="staff-anomalies-summary"></div>
+          <p id="staff-anomalies-status" class="staff-directory-status" role="status" aria-live="polite"></p>
+          <div id="staff-anomalies-content" class="staff-directory-content"></div>
+        </section>
         <section id="staff-permission-panel" class="staff-directory-panel" aria-labelledby="staff-permission-title" hidden>
           <div class="staff-directory-heading">
             <div>
@@ -653,7 +693,10 @@
           </div>
 
           <div class="profile-identity">
-            <span class="profile-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
+            <span class="profile-avatar" aria-hidden="true">
+              <img id="profile-photo-preview" alt="" hidden>
+              <i id="profile-photo-placeholder" class="fas fa-user"></i>
+            </span>
             <div class="profile-identity-details">
               <span class="profile-identity-label">Nama siswa</span>
               <p class="profile-name" id="profileNama"></p>
@@ -667,8 +710,16 @@
               <span class="profile-form-icon" aria-hidden="true"><i class="fas fa-sliders-h"></i></span>
               <div>
                 <h3>Informasi akun</h3>
-                <p>Perbarui email atau kata sandi akun.</p>
+                <p>Perbarui foto profil, email, atau kata sandi akun.</p>
               </div>
+            </div>
+            <div class="student-photo-field">
+              <span class="student-photo-label">Foto profil (opsional)</span>
+              <input id="profile-photo-input" type="file" accept="image/jpeg,image/png,image/webp" hidden
+                onchange="uploadStudentPhoto('profil', this)">
+              <button type="button" class="student-photo-upload-button"
+                onclick="document.getElementById('profile-photo-input').click()">Pilih foto profil</button>
+              <p id="profile-photo-status" class="student-photo-status" role="status" aria-live="polite"></p>
             </div>
             <label for="profileEmail">Email</label>
             <input type="email" id="profileEmail" placeholder="Email" autocomplete="email">
@@ -705,6 +756,7 @@
               </button>
             </div>
           </div>
+
           <div class="profile-identity">
             <span class="profile-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
             <div class="profile-identity-details">
@@ -713,6 +765,21 @@
               <p class="profile-nis"><span>NIS</span><strong id="ktdsNis"></strong></p>
             </div>
             <span class="profile-class" id="ktdsClass" hidden></span>
+          </div>
+          <div class="ktds-photo-upload">
+            <div>
+              <span class="student-photo-label">Foto OSIS (wajib untuk kartu pelajar)</span>
+              <img id="ktds-osis-photo-preview" class="ktds-osis-photo-preview" alt="Pratinjau foto OSIS" hidden>
+            </div>
+            <div class="student-photo-field">
+              <input id="ktds-osis-photo-input" type="file" accept="image/jpeg,image/png,image/webp" hidden
+                onchange="uploadStudentPhoto('osis', this)">
+              <button id="ktds-osis-photo-upload-button" type="button" class="student-photo-upload-button"
+                onclick="document.getElementById('ktds-osis-photo-input').click()">Pilih foto OSIS</button>
+              <p id="ktds-osis-photo-status" class="student-photo-status" role="status" aria-live="polite">
+                Unggah foto OSIS agar KTDS mencapai 100% dan kartu pelajar dapat dibuka.
+              </p>
+            </div>
           </div>
           <p id="ktds-status" class="staff-directory-status" role="status" aria-live="polite"></p>
           <div id="ktds-readonly-fields" class="ktds-fields" aria-live="polite"></div>
@@ -790,7 +857,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/mock_data.js?v=20261105-monthly-status-codes"></script>
-  <script src="js/script.js?v=20261105-monthly-status-codes"></script>
+  <script src="js/script.js?v=20261126-student-photo-drive"></script>
 </body>
 
 </html>
